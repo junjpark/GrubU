@@ -4,78 +4,64 @@
 //
 //  Created by Julie Baguio on 4/7/26.
 //
+//
+//  RequestTrackingView.swift
+//  GrubU
+//
+
 import SwiftUI
+import FirebaseFirestore
 
 struct RequestTrackingView: View {
     let order: Order
+    @Environment(\.dismiss) var dismiss
+    
+    // Explicit init to match our structural pattern
+    init(order: Order) {
+        self.order = order
+    }
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 25) {
+            VStack(spacing: 30) {
                 
-                // 1. DYNAMIC STATUS HEADER
-                VStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(statusColor.opacity(0.1))
-                            .frame(width: 100, height: 100)
-                        
-                        Image(systemName: statusIcon)
-                            .font(.system(size: 40, weight: .bold))
-                            .foregroundColor(statusColor)
-                    }
+                // 1. PROGRESS BAR
+                HStack(spacing: 10) {
+                    let statuses = ["claimed", "ordered", "delivered"]
+                    let currentIndex = statuses.firstIndex(of: order.status) ?? 0
                     
-                    Text(statusTitle)
-                        .font(.title2)
-                        .bold()
-                    
-                    Text(statusSubtitle)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
-                }
-                .padding(.top, 30)
-
-                StatusProgressBar(currentStatus: order.status)
-                    .padding(.horizontal)
-
-                // 3. PICKUP DETAILS (The info the fulfiller just submitted)
-                // This section only appears once the fulfiller hits "Mark as Ordered"
-                if order.status == "ordered" || order.status == "delivered" {
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text("PICKUP INFORMATION")
-                            .font(.caption).bold().foregroundColor(.secondary)
-                        
-                        VStack(alignment: .leading, spacing: 12) {
-                            DetailRow(icon: "person.fill", label: "Pickup Name", value: order.pickupName ?? "Pending...")
-                            DetailRow(icon: "clock.fill", label: "Est. Ready Time", value: order.estimatedTime ?? "Pending...")
-                            if let orderNum = order.grubhubOrderId, !orderNum.isEmpty {
-                                DetailRow(icon: "number", label: "Order Number", value: orderNum)
-                            }
-                        }
-                        .padding()
-                        .background(Color.blue.opacity(0.05))
-                        .cornerRadius(12)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.blue.opacity(0.2), lineWidth: 1))
+                    ForEach(Array(statuses.enumerated()), id: \.element) { index, step in
+                        Rectangle()
+                            .frame(height: 8)
+                            .foregroundColor(index <= currentIndex ? .blue : .gray.opacity(0.3))
+                            .cornerRadius(4)
                     }
-                    .padding(.horizontal)
                 }
+                .padding(.top)
 
-                // 4. DELIVERY PROOF (The Photo)
+                // 2. CURRENT STATUS HEADER
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Order Status: \(order.status.uppercased())")
+                        .font(.caption).bold().foregroundColor(.secondary)
+                    Text(statusMessage)
+                        .font(.title2).bold()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Divider()
+
+                // 3. DYNAMIC CONTENT
                 if order.status == "delivered" {
+                    // --- THE DELIVERY PROOF PHOTO ---
                     VStack(alignment: .leading, spacing: 15) {
                         Text("DELIVERY PROOF")
                             .font(.caption).bold().foregroundColor(.secondary)
                         
-                        // 1. Safely unwrap the string
-                        // 2. Ensure it's not empty
-                        // 3. Ensure it creates a valid URL
+                        // Using the ultra-safe unwrap we built earlier
                         if let imageUrlString = order.proofImageUrl,
                            !imageUrlString.isEmpty,
                            let validURL = URL(string: imageUrlString) {
                             
-                            // If all checks pass, show the image
                             AsyncImage(url: validURL) { image in
                                 image.resizable()
                                     .aspectRatio(contentMode: .fill)
@@ -89,119 +75,74 @@ struct RequestTrackingView: View {
                             .cornerRadius(16)
                             
                         } else {
-                            // If any check fails (nil, empty, or invalid), show a placeholder box
+                            // Fallback if the fulfiller somehow bypassed the photo upload
                             ZStack {
                                 Rectangle().fill(Color.gray.opacity(0.1))
-                                Text("No photo provided")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                VStack(spacing: 10) {
+                                    Image(systemName: "photo.badge.exclamationmark")
+                                        .font(.largeTitle)
+                                        .foregroundColor(.gray)
+                                    Text("No delivery photo provided.")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                             .frame(height: 250)
                             .cornerRadius(16)
                         }
                     }
-                    .padding(.horizontal)
-                }
-                // 5. ORDER SUMMARY (Receipt)
-                VStack(alignment: .leading, spacing: 15) {
-                    Text("YOUR REQUEST")
-                        .font(.caption).bold().foregroundColor(.secondary)
                     
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(order.restaurantName).bold()
-                        ForEach(order.orderDetails, id: \.self) { item in
-                            Text("• \(item)").font(.subheadline).foregroundColor(.secondary)
-                        }
+                    // --- OPTIONAL: CONFIRM RECEIPT BUTTON ---
+                    // If you want the requester to "close" the order, you can add an action here later.
+                    VStack {
+                        Image(systemName: "party.popper.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(.blue)
+                            .padding(.top, 20)
+                            .padding(.bottom, 5)
+                        Text("Enjoy your food!")
+                            .font(.headline).foregroundColor(.blue)
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(UIColor.secondarySystemBackground))
-                    .cornerRadius(12)
+                    
+                } else if order.status == "ordered" {
+                    // --- WAITING FOR DELIVERY ---
+                    VStack(spacing: 20) {
+                        Image(systemName: "takeoutbag.and.cup.and.straw.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.blue.opacity(0.7))
+                        Text("Your fulfiller is heading to the drop-off location.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 20)
+                } else {
+                    // --- WAITING FOR ORDER TO BE PLACED ---
+                    VStack(spacing: 20) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.orange.opacity(0.7))
+                        Text("Someone claimed your request! They are currently placing the order.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 20)
                 }
-                .padding(.horizontal)
-                
-                Spacer(minLength: 50)
             }
+            .padding(.horizontal)
         }
-        .navigationTitle("Order Tracking")
+        .navigationTitle("Track Request")
         .navigationBarTitleDisplayMode(.inline)
     }
-
-    // MARK: - View Helpers
     
-    private var statusColor: Color {
+    // --- UI Helpers ---
+    var statusMessage: String {
         switch order.status {
-        case "delivered": return .green
-        case "open": return .gray
-        default: return .orange
+        case "claimed": return "Fulfiller is preparing to order."
+        case "ordered": return "Food is ordered and on the way!"
+        case "delivered": return "Your food has arrived!"
+        default: return "Waiting for a fulfiller..."
         }
-    }
-
-    private var statusIcon: String {
-        switch order.status {
-        case "open": return "magnifyingglass"
-        case "claimed": return "hand.thumbsup.fill"
-        case "ordered": return "cart.fill"
-        case "delivered": return "checkmark.seal.fill"
-        default: return "ellipsis"
-        }
-    }
-
-    private var statusTitle: String {
-        switch order.status {
-        case "open": return "Finding a Runner"
-        case "claimed": return "Student Matched!"
-        case "ordered": return "Food is Ordered"
-        case "delivered": return "Food Delivered!"
-        default: return "Processing"
-        }
-    }
-
-    private var statusSubtitle: String {
-        switch order.status {
-        case "open": return "Your request is live on the market."
-        case "claimed": return "A fulfiller is preparing to place your order."
-        case "ordered": return "Your order has been placed. Check the pickup name below!"
-        case "delivered": return "Check the photo below for the drop-off location."
-        default: return ""
-        }
-    }
-}
-
-// MARK: - Subcomponents
-
-struct StatusProgressBar: View {
-    let currentStatus: String
-    let steps = ["open", "claimed", "ordered", "delivered"]
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            ForEach(steps, id: \.self) { step in
-                Capsule()
-                    .frame(height: 6)
-                    .foregroundColor(isCompleted(step) ? .orange : Color.gray.opacity(0.2))
-            }
-        }
-    }
-    
-    func isCompleted(_ step: String) -> Bool {
-        let weights = ["open": 0, "claimed": 1, "ordered": 2, "delivered": 3]
-        return weights[step]! <= weights[currentStatus]!
-    }
-}
-
-struct DetailRow: View {
-    let icon: String
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Image(systemName: icon).foregroundColor(.blue).frame(width: 20)
-            Text(label).foregroundColor(.secondary)
-            Spacer()
-            Text(value).bold()
-        }
-        .font(.footnote)
     }
 }
