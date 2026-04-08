@@ -53,7 +53,7 @@ struct RequestTrackingView: View {
                     
                 } else if order.status == "delivered" {
                     VStack(alignment: .leading, spacing: 15) {
-                        Text("DELIVERY PROOF")
+                        Text("READY TO PICKUP PROOF")
                             .font(.caption).bold().foregroundColor(.secondary)
                         
                         if let imageUrlString = order.proofImageUrl,
@@ -79,7 +79,7 @@ struct RequestTrackingView: View {
                                     Image(systemName: "photo.badge.exclamationmark")
                                         .font(.largeTitle)
                                         .foregroundColor(.gray)
-                                    Text("No delivery photo provided.")
+                                    Text("No photo provided.")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
@@ -113,7 +113,7 @@ struct RequestTrackingView: View {
                         Image(systemName: "takeoutbag.and.cup.and.straw.fill")
                             .font(.system(size: 60))
                             .foregroundColor(.orange.opacity(0.7))
-                        Text("Your fulfiller is heading to the drop-off location.")
+                        Text("Your order is being prepared.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -142,8 +142,8 @@ struct RequestTrackingView: View {
     var statusMessage: String {
         switch order.status {
         case "claimed": return "Fulfiller is preparing to order."
-        case "ordered": return "Food is ordered and on the way."
-        case "delivered": return "Your food has arrived at the drop-off."
+        case "ordered": return "Food is ordered and being prepared"
+        case "delivered": return "Your food is ready-for-pickup."
         case "completed": return "Order complete."
         default: return "Waiting for a fulfiller..."
         }
