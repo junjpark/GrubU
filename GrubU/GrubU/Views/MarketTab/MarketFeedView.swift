@@ -7,7 +7,6 @@ struct MarketFeedView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                // Switched to a V-Stack for the gig-app card layout
                 LazyVStack(spacing: 16) {
                     ForEach(marketController.openOrders) { order in
                         NavigationLink(destination: OrderPreviewView(order: order)) {
@@ -20,12 +19,8 @@ struct MarketFeedView: View {
                 .padding(.top, 10)
             }
             .navigationTitle("Market")
-            .background(Color(.systemGroupedBackground)) // Gives a nice gray background so the white cards pop
+            .background(Color(.systemGroupedBackground))
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Inject Data") { marketController.injectDummyData() }
-                        .font(.caption).buttonStyle(.bordered)
-                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { authController.signOut() }) {
                         Image(systemName: "rectangle.portrait.and.arrow.right").foregroundColor(.red)
@@ -38,14 +33,12 @@ struct MarketFeedView: View {
     }
 }
 
-// MARK: - The New List Cell Design
 struct OrderListCell: View {
     let order: Order
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             
-            // TOP ROW: The Financials (Highest Priority)
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Payout")
@@ -73,7 +66,6 @@ struct OrderListCell: View {
             
             Divider()
             
-            // MIDDLE ROW: The Items (Looping through the new array)
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(order.orderDetails, id: \.self) { item in
                     Text("• \(item)")
@@ -82,7 +74,6 @@ struct OrderListCell: View {
                 }
             }
             
-            // BOTTOM ROW: The Restaurant
             HStack {
                 Spacer()
                 Text("from \(order.restaurantName)")
@@ -94,7 +85,6 @@ struct OrderListCell: View {
         .padding(16)
         .background(Color(.systemBackground))
         .cornerRadius(16)
-        // A subtle shadow mimicking your wireframe border
         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
         .overlay(
             RoundedRectangle(cornerRadius: 16)

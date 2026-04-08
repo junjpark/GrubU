@@ -53,10 +53,6 @@ struct GrubUApp: App {
     @StateObject var authManager = AuthController()
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
-    init() {
-        FirebaseApp.configure()
-    }
-    
     var body: some Scene {
         WindowGroup {
             if authManager.userSession != nil {

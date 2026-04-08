@@ -65,43 +65,4 @@ class MarketController: ObservableObject {
             }
         }
     }
-    
-    // TEMPORARY: Run this once to populate the database
-    func injectDummyData() {
-            guard let currentUid = Auth.auth().currentUser?.uid else { return }
-            
-            let order1 = Order(
-                requesterId: currentUid,
-                fulfillerId: "",
-                restaurantName: "Corner 17",
-                // Notice the array format here:
-                orderDetails: ["1x Sichuan Spicy Fish Fillet (Mild)", "1x Side of White Rice", "1x Boba Milk Tea"],
-                foodCost: 24.50,
-                bountyAmount: 6.00,
-                grubhubOrderId: "",
-                status: "open",
-                proofImageUrl: ""
-            )
-            
-            let order2 = Order(
-                requesterId: currentUid,
-                fulfillerId: "",
-                restaurantName: "Papa Johns",
-                orderDetails: ["1x Large Pepperoni Pizza", "1x Garlic Sauce"],
-                foodCost: 14.00,
-                bountyAmount: 4.50,
-                grubhubOrderId: "",
-                status: "open",
-                proofImageUrl: ""
-            )
-            
-            do {
-                let db = Firestore.firestore()
-                try db.collection("orders").document().setData(from: order1)
-                try db.collection("orders").document().setData(from: order2)
-                print("Dummy data successfully injected!")
-            } catch {
-                print("Failed to inject data: \(error.localizedDescription)")
-            }
-        }
 }
