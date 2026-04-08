@@ -7,13 +7,11 @@ struct TaskTrackingView: View {
     @Environment(\.dismiss) var dismiss
     private var db = Firestore.firestore()
     
-    // Form State
     @State private var pickupName: String = ""
     @State private var estimatedTime: String = ""
     @State private var grubhubOrderId: String = ""
     @State private var hasConfirmedItems = false
     
-    // Photo State
     @State private var selectedImage: UIImage? = nil
     @State private var showImagePicker = false
     @State private var isUploading = false
@@ -33,7 +31,7 @@ struct TaskTrackingView: View {
                     ForEach(Array(statuses.enumerated()), id: \.element) { index, step in
                         Rectangle()
                             .frame(height: 8)
-                            .foregroundColor(index <= currentIndex ? .green : .gray.opacity(0.3))
+                            .foregroundColor(index <= currentIndex ? .orange : .gray.opacity(0.3))
                             .cornerRadius(4)
                     }
                 }
@@ -92,7 +90,7 @@ struct TaskTrackingView: View {
                                     .stroke(Color.gray, style: StrokeStyle(lineWidth: 2, dash: selectedImage == nil ? [5] : []))
                             )
                         }
-                        .foregroundColor(selectedImage == nil ? .primary : .clear) // Hide text color if image exists
+                        .foregroundColor(selectedImage == nil ? .primary : .clear)
                         
                         Text("Please provide a photo of the food at the drop-off location.")
                             .font(.caption)
@@ -116,18 +114,18 @@ struct TaskTrackingView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(isFormValid && !isUploading ? Color.green : Color.gray.opacity(0.5))
+                        .background(isFormValid && !isUploading ? Color.orange : Color.gray.opacity(0.5))
                         .cornerRadius(12)
                     }
                     .disabled(!isFormValid || isUploading)
                 } else {
                     VStack {
-                        Image(systemName: "checkmark.seal.fill")
+                        Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 50))
-                            .foregroundColor(.green)
+                            .foregroundColor(.orange)
                             .padding(.bottom, 5)
-                        Text("Order Complete! 🏁")
-                            .font(.title3).bold().foregroundColor(.green)
+                        Text("Order Complete")
+                            .font(.title3).bold().foregroundColor(.orange)
                     }
                     .padding(.top, 20)
                 }
@@ -136,20 +134,18 @@ struct TaskTrackingView: View {
         }
         .navigationTitle("Track Task")
         .navigationBarTitleDisplayMode(.inline)
-        // Attach the Image Picker Sheet here
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage)
         }
     }
     
     // --- UI Helpers ---
-    
     var statusMessage: String {
         switch order.status {
         case "claimed": return "Head to Grubhub/Meal Plan to place the order."
         case "ordered": return "Food is on the way. Upload a photo when dropped off."
-        case "delivered": return "Delivery complete! Waiting for requester confirmation."
-        case "completed": return "Requester confirmed receipt. Great job!"
+        case "delivered": return "Delivery complete. Waiting for requester confirmation."
+        case "completed": return "Requester confirmed receipt."
         default: return "Unknown status"
         }
     }
@@ -158,8 +154,6 @@ struct TaskTrackingView: View {
         order.status == "claimed" ? "Confirm & Mark as Ordered" : "Submit Photo & Mark as Delivered"
     }
     
-    // --- Logic Helpers ---
-
     var isFormValid: Bool {
         if order.status == "claimed" {
             return !pickupName.isEmpty && !estimatedTime.isEmpty && hasConfirmedItems
@@ -169,12 +163,12 @@ struct TaskTrackingView: View {
         return false
     }
 
+    // --- Logic Helpers ---
     private func updateFirestore(with updateData: [String: Any]) {
         db.collection("orders").document(order.id ?? "").updateData(updateData) { error in
             isUploading = false
-            if error == nil {
-            } else {
-                print("Error updating document: \(error?.localizedDescription ?? "Unknown error")")
+            if let error = error {
+                print("Error updating document: \(error.localizedDescription)")
             }
         }
     }
@@ -192,7 +186,7 @@ struct TaskTrackingView: View {
             
         } else if order.status == "ordered" {
             guard let image = selectedImage else { return }
-            isUploading = true // Show loading spinner
+            isUploading = true
             
             uploadImageToStorage(image: image) { url in
                 if let downloadUrl = url {
@@ -225,7 +219,6 @@ struct TaskTrackingView: View {
                     completion(nil)
                     return
                 }
-                
                 completion(url?.absoluteString)
             }
         }
@@ -253,7 +246,7 @@ struct CheckboxToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack {
             Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                .foregroundColor(configuration.isOn ? .green : .gray)
+                .foregroundColor(configuration.isOn ? .orange : .gray)
                 .onTapGesture { configuration.isOn.toggle() }
             configuration.label
         }

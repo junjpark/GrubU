@@ -15,14 +15,14 @@ struct RequestTrackingView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 30) {
-                HStack(spacing: 10) {
+                                HStack(spacing: 10) {
                     let statuses = ["claimed", "ordered", "delivered", "completed"]
                     let currentIndex = statuses.firstIndex(of: order.status) ?? 0
                     
                     ForEach(Array(statuses.enumerated()), id: \.element) { index, step in
                         Rectangle()
                             .frame(height: 8)
-                            .foregroundColor(index <= currentIndex ? .blue : .gray.opacity(0.3))
+                            .foregroundColor(index <= currentIndex ? .orange : .gray.opacity(0.3))
                             .cornerRadius(4)
                     }
                 }
@@ -40,14 +40,14 @@ struct RequestTrackingView: View {
 
                 if order.status == "completed" {
                     VStack {
-                        Image(systemName: "party.popper.fill")
+                        Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 60))
-                            .foregroundColor(.blue)
+                            .foregroundColor(.orange)
                             .padding(.top, 20)
                             .padding(.bottom, 5)
-                        Text("Enjoy your food!")
-                            .font(.title2).bold().foregroundColor(.blue)
-                        Text("This request is now complete.")
+                        Text("Order Complete")
+                            .font(.title2).bold().foregroundColor(.orange)
+                        Text("This request is now finished.")
                             .font(.subheadline).foregroundColor(.secondary)
                     }
                     
@@ -102,7 +102,7 @@ struct RequestTrackingView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(Color.orange)
                         .cornerRadius(12)
                     }
                     .disabled(isConfirming)
@@ -112,7 +112,7 @@ struct RequestTrackingView: View {
                     VStack(spacing: 20) {
                         Image(systemName: "takeoutbag.and.cup.and.straw.fill")
                             .font(.system(size: 60))
-                            .foregroundColor(.blue.opacity(0.7))
+                            .foregroundColor(.orange.opacity(0.7))
                         Text("Your fulfiller is heading to the drop-off location.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
@@ -138,16 +138,18 @@ struct RequestTrackingView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
     
+    // --- UI Helpers ---
     var statusMessage: String {
         switch order.status {
         case "claimed": return "Fulfiller is preparing to order."
-        case "ordered": return "Food is ordered and on the way!"
-        case "delivered": return "Your food has arrived at the drop-off!"
+        case "ordered": return "Food is ordered and on the way."
+        case "delivered": return "Your food has arrived at the drop-off."
         case "completed": return "Order complete."
         default: return "Waiting for a fulfiller..."
         }
     }
     
+    // --- Logic Helpers ---
     func confirmReceipt() {
         isConfirming = true
         db.collection("orders").document(order.id ?? "").updateData(["status": "completed"]) { error in
