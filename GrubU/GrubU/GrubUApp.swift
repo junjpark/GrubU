@@ -36,7 +36,8 @@ struct GrubUApp: App {
                 MarketFeedView()
             } else {
                 // If they aren't, force them to log in!
-                LoginView()
+                //LoginView()
+                NewRequestView()
             }
         }
         // This injects the manager into the app so any screen can access it
