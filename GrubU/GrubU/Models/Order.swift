@@ -12,8 +12,6 @@ struct Order: Identifiable, Codable {
     var requesterId: String
     var fulfillerId: String
     var restaurantName: String
-    
-    // CHANGED: Now an array of items for clean bullet points
     var orderDetails: [String]
     
     var foodCost: Double

@@ -5,96 +5,160 @@
 //  Created by Julie Baguio on 4/7/26.
 //
 import SwiftUI
+import FirebaseAuth
 
 struct OrderPreviewView: View {
     let order: Order
-    @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var authController: AuthController
+    @StateObject private var marketController = MarketController()
+    @Environment(\.dismiss) var dismiss
+    
+    // Track loading state so the user doesn't double-tap
+    @State private var isClaiming = false
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Large Placeholder Image
-                ZStack {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 300)
-                        .cornerRadius(16)
-                    
-                    Image(systemName: "takeoutbox.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 80, height: 80)
-                        .foregroundColor(.gray)
-                }
-                .padding(.horizontal)
-                
-                // Details Section
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(order.restaurantName)
-                        .font(.largeTitle)
-                        .bold()
-                    
-                    Text("The Order:")
-                        .font(.headline)
+        ZStack {
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 28) {
+                        
+                        // 1. THE FINANCIALS
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Payout")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                    .bold()
+                                
+                                Text("+$\(order.bountyAmount, specifier: "%.2f")")
+                                    .font(.largeTitle)
+                                    .fontWeight(.heavy) // Added heavy weight for impact
+                                    .foregroundColor(.green)
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text("Meal Points")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                    .bold()
+                                
+                                Text("-$\(order.foodCost, specifier: "%.2f")")
+                                    .font(.largeTitle)
+                                    .fontWeight(.heavy) // Matched size and weight
+                                    .foregroundColor(.red)
+                            }
+                        }
                         .padding(.top, 10)
-                    
-                    // NEW: Loop through the array for the details screen
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(order.orderDetails, id: \.self) { item in
-                            Text("• \(item)")
-                                .font(.body)
+                        
+                        // 2. THE RECEIPT
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Image(systemName: "building.2.fill")
+                                    .foregroundColor(.gray)
+                                Text("Order from: **\(order.restaurantName)**")
+                                    .font(.headline)
+                            }
+                            
+                            Divider()
+                            
+                            VStack(alignment: .leading, spacing: 12) {
+                                ForEach(order.orderDetails, id: \.self) { item in
+                                    HStack(alignment: .top) {
+                                        Text("•").bold().foregroundColor(.secondary)
+                                        Text(item)
+                                            .font(.body)
+                                            .foregroundColor(.primary)
+                                    }
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(12)
+                        
+                        // 3. TERMS AND CONDITIONS
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Terms & Conditions:")
+                                .font(.caption)
+                                .bold()
                                 .foregroundColor(.secondary)
+                            
+                            Text("By accepting this request, you commit to placing this order using your funds and uploading proof of delivery. Unfulfilled accepted requests negatively impact your rating and may result in account suspension.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineSpacing(4)
                         }
                     }
-                    .padding(.bottom, 10)
-                    
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                }
+                
+                // 4. ACTION BUTTONS
+                VStack {
                     Divider()
-                    
-                    // Financial Breakdown
-                    HStack {
-                        Text("Food Cost (Meal Points)")
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("$\(order.foodCost, specifier: "%.2f")")
-                            .bold()
+                    HStack(spacing: 16) {
+                        Button(action: { dismiss() }) {
+                            Text("Cancel")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(Color(UIColor.systemGray5))
+                                .cornerRadius(14)
+                        }
+                        .disabled(isClaiming)
+                        
+                        Button(action: {
+                            processOrderClaim()
+                        }) {
+                            if isClaiming {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            } else {
+                                Text("Accept Request")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(Color.orange)
+                                    .cornerRadius(14)
+                            }
+                        }
+                        .disabled(isClaiming)
                     }
-                    
-                    HStack {
-                        Text("Your Payout (Bounty)")
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("$\(order.bountyAmount, specifier: "%.2f")")
-                            .bold()
-                            .foregroundColor(.green)
-                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
                 }
-                .padding(.horizontal, 20)
-                
-                Spacer()
-                
-                // Claim Button
-                Button(action: {
-                    claimOrder()
-                }) {
-                    Text("Claim Order")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.orange)
-                        .cornerRadius(12)
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 30)
+                .background(Color(UIColor.systemBackground))
             }
+            .navigationTitle("Request Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .blur(radius: isClaiming ? 2 : 0)
         }
-        .navigationTitle("Order Details")
-        .navigationBarTitleDisplayMode(.inline)
     }
     
-    // This logic will eventually move to your MarketController
-    func claimOrder() {
-        print("Claiming order: \(order.id ?? "Unknown ID")")
-        // TODO: Update Firestore document status to "claimed" and set fulfillerId
+    // logic to connect to marketController
+    func processOrderClaim() {
+        guard let currentUserId = authController.userSession?.uid,
+              let orderId = order.id else {
+            print("Missing UserID or OrderID")
+            return
+        }
+        
+        isClaiming = true
+        
+        marketController.claimOrder(orderId: orderId, fulfillerId: currentUserId) { success in
+            isClaiming = false
+            if success {
+                dismiss()
+            } else {
+                // Here you could add an alert to show the user it failed
+                print("Failed to claim order in UI")
+            }
+        }
     }
 }

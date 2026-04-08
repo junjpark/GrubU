@@ -48,6 +48,24 @@ class MarketController: ObservableObject {
         listenerRegistration?.remove()
     }
     
+    func claimOrder(orderId: String, fulfillerId: String, completion: @escaping (Bool) -> Void) {
+        let orderRef = db.collection("orders").document(orderId)
+        
+        // We use a dictionary update to only change the specific fields we need
+        orderRef.updateData([
+            "status": "claimed",
+            "fulfillerId": fulfillerId
+        ]) { error in
+            if let error = error {
+                print("Error claiming order: \(error.localizedDescription)")
+                completion(false)
+            } else {
+                print("Successfully claimed order!")
+                completion(true)
+            }
+        }
+    }
+    
     // TEMPORARY: Run this once to populate the database
     func injectDummyData() {
             guard let currentUid = Auth.auth().currentUser?.uid else { return }
