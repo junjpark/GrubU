@@ -18,8 +18,8 @@ struct Order: Identifiable, Codable {
     var estimatedTime: String?
     var foodCost: Double
     var bountyAmount: Double
-    var grubhubOrderId: String
+    var grubhubOrderId: String?
     var status: String
-    var proofImageUrl: String
+    var proofImageUrl: String?
     @ServerTimestamp var createdAt: Date?
 }

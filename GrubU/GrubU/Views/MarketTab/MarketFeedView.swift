@@ -1,56 +1,94 @@
-//
-//  MarketFeedView.swift
-//  
-//
-//  Created by Julie Baguio on 4/7/26.
-//
 import SwiftUI
 
 struct MarketFeedView: View {
-    // Grabbing the global authController to handle logouts
     @EnvironmentObject var authController: AuthController
+    @StateObject private var marketController = MarketController()
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Spacer()
-                
-                Image(systemName: "bag.circle.fill")
-                    .resizable()
-                    .frame(width: 80, height: 80)
-                    .foregroundColor(.orange)
-                
-                Text("Welcome to the Market!")
-                    .font(.title)
-                    .bold()
-                
-                Text("Open student requests will appear here soon.")
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                
-                Spacer()
-                
-                // Temporary Log Out button to test your Auth architecture
-                Button(action: {
-                    authController.signOut()
-                }) {
-                    Text("Log Out")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red)
-                        .cornerRadius(12)
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    ForEach(marketController.openOrders) { order in
+                        NavigationLink(destination: OrderPreviewView(order: order)) {
+                            OrderListCell(order: order)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
                 }
-                .padding(.horizontal, 30)
-                .padding(.bottom, 20)
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
             }
-            .navigationTitle("Market Feed")
+            .navigationTitle("Market")
+            .background(Color(.systemGroupedBackground))
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { authController.signOut() }) {
+                        Image(systemName: "rectangle.portrait.and.arrow.right").foregroundColor(.red)
+                    }
+                }
+            }
+            .onAppear { marketController.fetchOpenOrders() }
+            .onDisappear { marketController.stopListening() }
         }
     }
 }
 
-#Preview {
-    MarketFeedView().environmentObject(AuthController())
+struct OrderListCell: View {
+    let order: Order
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Payout")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
+                    Text("+$\(order.bountyAmount, specifier: "%.2f")")
+                        .font(.title2)
+                        .bold()
+                        .foregroundColor(.green)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("Meal Points")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
+                    Text("$\(order.foodCost, specifier: "%.2f")")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                }
+            }
+            
+            Divider()
+            
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(order.orderDetails, id: \.self) { item in
+                    Text("• \(item)")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                }
+            }
+            
+            HStack {
+                Spacer()
+                Text("from \(order.restaurantName)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .italic()
+            }
+        }
+        .padding(16)
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+    }
 }
