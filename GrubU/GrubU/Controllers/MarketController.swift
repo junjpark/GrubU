@@ -17,32 +17,31 @@ class MarketController: ObservableObject {
     private var listenerRegistration: ListenerRegistration?
     
     func fetchOpenOrders() {
-            // Listen to the "orders" collection for anything marked "open"
-            listenerRegistration = db.collection("orders")
-                .whereField("status", isEqualTo: "open")
-                .addSnapshotListener { [weak self] snapshot, error in
-                    guard let documents = snapshot?.documents else {
-                        print("Error fetching orders: \(error?.localizedDescription ?? "Unknown error")")
-                        return
+        guard let currentUserID = Auth.auth().currentUser?.uid else { return }
+
+        listenerRegistration = db.collection("orders")
+            .whereField("status", isEqualTo: "open")
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let documents = snapshot?.documents else { return }
+                
+                let fetchedOrders = documents.compactMap { document -> Order? in
+                    if let order = try? document.data(as: Order.self) {
+                        if order.requesterId != currentUserID {
+                            return order
+                        }
                     }
-                    
-                    // convert the documents to Swift Orders
-                    let fetchedOrders = documents.compactMap { document in
-                        try? document.data(as: Order.self)
-                    }
-                    
-                    // sort them locally in Swift
-                    // If the timestamp is missing (during the split-second upload), it defaults to right now.
-                    let sortedOrders = fetchedOrders.sorted {
-                        ($0.createdAt ?? Date()) > ($1.createdAt ?? Date())
-                    }
-                    
-                    // update the UI safely on the main thread
-                    DispatchQueue.main.async {
-                        self?.openOrders = sortedOrders
-                    }
+                    return nil
                 }
-        }
+                
+                let sortedOrders = fetchedOrders.sorted {
+                    ($0.createdAt ?? Date()) > ($1.createdAt ?? Date())
+                }
+                
+                DispatchQueue.main.async {
+                    self?.openOrders = sortedOrders
+                }
+            }
+    }
     
     func stopListening() {
         listenerRegistration?.remove()

@@ -66,7 +66,7 @@ struct FinalCheckoutView: View {
             foodCost: menuManager.totalCost,
             bountyAmount: bounty,
             grubhubOrderId: "",    // To be filled by user or system later
-            status: "pending",     // Initial status
+            status: "open",     // Initial status
             proofImageUrl: ""      // No image yet
         )
         

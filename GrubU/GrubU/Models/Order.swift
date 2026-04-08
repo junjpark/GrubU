@@ -10,7 +10,7 @@ import FirebaseFirestore
 struct Order: Identifiable, Codable {
     @DocumentID var id: String?
     var requesterId: String
-    var fulfillerId: String
+    var fulfillerId: String?
     var restaurantName: String
     var orderDetails: [String]
     
