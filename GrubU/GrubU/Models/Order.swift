@@ -14,10 +14,12 @@ struct Order: Identifiable, Codable {
     var restaurantName: String
     var orderDetails: [String]
     
+    var pickupName: String?
+    var estimatedTime: String?
     var foodCost: Double
     var bountyAmount: Double
-    var grubhubOrderId: String
+    var grubhubOrderId: String?
     var status: String
-    var proofImageUrl: String
+    var proofImageUrl: String?
     @ServerTimestamp var createdAt: Date?
 }
