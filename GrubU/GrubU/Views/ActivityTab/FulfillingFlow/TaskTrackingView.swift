@@ -92,7 +92,7 @@ struct TaskTrackingView: View {
                         }
                         .foregroundColor(selectedImage == nil ? .primary : .clear)
                         
-                        Text("Please provide a photo of the food at the drop-off location.")
+                        Text("Please provide a screenshot of the ready-to-pickup GrubHub order.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -142,16 +142,16 @@ struct TaskTrackingView: View {
     // --- UI Helpers ---
     var statusMessage: String {
         switch order.status {
-        case "claimed": return "Head to Grubhub/Meal Plan to place the order."
-        case "ordered": return "Food is on the way. Upload a photo when dropped off."
-        case "delivered": return "Delivery complete. Waiting for requester confirmation."
+        case "claimed": return "Head to Grubhub to place the order."
+        case "ordered": return "Food is being prepared. Upload a screenshot when it's ready."
+        case "delivered": return "Food is ready-for-pickup. Waiting for requester confirmation."
         case "completed": return "Requester confirmed receipt."
         default: return "Unknown status"
         }
     }
     
     var buttonLabel: String {
-        order.status == "claimed" ? "Confirm & Mark as Ordered" : "Submit Photo & Mark as Delivered"
+        order.status == "claimed" ? "Confirm & Mark as Ordered" : "Submit Screenshot & Mark as Completed"
     }
     
     var isFormValid: Bool {
