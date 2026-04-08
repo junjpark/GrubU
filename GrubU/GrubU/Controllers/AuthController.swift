@@ -16,7 +16,7 @@ class AuthController: ObservableObject {
     init() {
         // This listener runs in the background forever.
         // It fires automatically whenever someone logs in, logs out, or signs up.
-        Auth.auth().addStateDidChangeListener { auth, user in
+        _ = Auth.auth().addStateDidChangeListener { auth, user in
             
             // Only consider them "logged in" to the app if they clicked the email link!
             if let user = user, user.isEmailVerified {

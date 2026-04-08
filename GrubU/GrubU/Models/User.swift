@@ -6,3 +6,26 @@
 //
 
 import Foundation
+import FirebaseFirestore
+
+struct User: Identifiable, Codable {
+    // 0. The Database ID (Automatically maps to the document ID in Firestore)
+    @DocumentID var id: String?
+    
+    // 1. Core Identity
+    var uid: String
+    var email: String
+    var displayName: String
+    var university: String
+    
+    // 2. The Financials (From your architecture notes!)
+    var usdBalance: Double
+    var isBankLinked: Bool
+    
+    // 3. Platform Stats
+    var rating: Double
+    var completedOrders: Int
+    
+    // Automatically grabs the exact time the account was created
+    @ServerTimestamp var createdAt: Date?
+}
