@@ -1,22 +1,13 @@
-//
-//  RequestTrackingView.swift
-//  
-//
-//  Created by Julie Baguio on 4/7/26.
-//
-//
-//  RequestTrackingView.swift
-//  GrubU
-//
-
 import SwiftUI
 import FirebaseFirestore
 
 struct RequestTrackingView: View {
     let order: Order
     @Environment(\.dismiss) var dismiss
+    private var db = Firestore.firestore()
     
-    // Explicit init to match our structural pattern
+    @State private var isConfirming = false
+    
     init(order: Order) {
         self.order = order
     }
@@ -24,10 +15,8 @@ struct RequestTrackingView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 30) {
-                
-                // 1. PROGRESS BAR
                 HStack(spacing: 10) {
-                    let statuses = ["claimed", "ordered", "delivered"]
+                    let statuses = ["claimed", "ordered", "delivered", "completed"]
                     let currentIndex = statuses.firstIndex(of: order.status) ?? 0
                     
                     ForEach(Array(statuses.enumerated()), id: \.element) { index, step in
@@ -39,7 +28,6 @@ struct RequestTrackingView: View {
                 }
                 .padding(.top)
 
-                // 2. CURRENT STATUS HEADER
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Order Status: \(order.status.uppercased())")
                         .font(.caption).bold().foregroundColor(.secondary)
@@ -50,14 +38,24 @@ struct RequestTrackingView: View {
 
                 Divider()
 
-                // 3. DYNAMIC CONTENT
-                if order.status == "delivered" {
-                    // --- THE DELIVERY PROOF PHOTO ---
+                if order.status == "completed" {
+                    VStack {
+                        Image(systemName: "party.popper.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.blue)
+                            .padding(.top, 20)
+                            .padding(.bottom, 5)
+                        Text("Enjoy your food!")
+                            .font(.title2).bold().foregroundColor(.blue)
+                        Text("This request is now complete.")
+                            .font(.subheadline).foregroundColor(.secondary)
+                    }
+                    
+                } else if order.status == "delivered" {
                     VStack(alignment: .leading, spacing: 15) {
                         Text("DELIVERY PROOF")
                             .font(.caption).bold().foregroundColor(.secondary)
                         
-                        // Using the ultra-safe unwrap we built earlier
                         if let imageUrlString = order.proofImageUrl,
                            !imageUrlString.isEmpty,
                            let validURL = URL(string: imageUrlString) {
@@ -75,7 +73,6 @@ struct RequestTrackingView: View {
                             .cornerRadius(16)
                             
                         } else {
-                            // Fallback if the fulfiller somehow bypassed the photo upload
                             ZStack {
                                 Rectangle().fill(Color.gray.opacity(0.1))
                                 VStack(spacing: 10) {
@@ -92,20 +89,26 @@ struct RequestTrackingView: View {
                         }
                     }
                     
-                    // --- OPTIONAL: CONFIRM RECEIPT BUTTON ---
-                    // If you want the requester to "close" the order, you can add an action here later.
-                    VStack {
-                        Image(systemName: "party.popper.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(.blue)
-                            .padding(.top, 20)
-                            .padding(.bottom, 5)
-                        Text("Enjoy your food!")
-                            .font(.headline).foregroundColor(.blue)
+                    Button(action: confirmReceipt) {
+                        HStack {
+                            if isConfirming {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .padding(.trailing, 5)
+                            }
+                            Text(isConfirming ? "Confirming..." : "I have my food")
+                                .font(.headline)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(12)
                     }
+                    .disabled(isConfirming)
+                    .padding(.top, 10)
                     
                 } else if order.status == "ordered" {
-                    // --- WAITING FOR DELIVERY ---
                     VStack(spacing: 20) {
                         Image(systemName: "takeoutbag.and.cup.and.straw.fill")
                             .font(.system(size: 60))
@@ -117,7 +120,6 @@ struct RequestTrackingView: View {
                     }
                     .padding(.top, 20)
                 } else {
-                    // --- WAITING FOR ORDER TO BE PLACED ---
                     VStack(spacing: 20) {
                         Image(systemName: "clock.fill")
                             .font(.system(size: 60))
@@ -136,13 +138,23 @@ struct RequestTrackingView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
     
-    // --- UI Helpers ---
     var statusMessage: String {
         switch order.status {
         case "claimed": return "Fulfiller is preparing to order."
         case "ordered": return "Food is ordered and on the way!"
-        case "delivered": return "Your food has arrived!"
+        case "delivered": return "Your food has arrived at the drop-off!"
+        case "completed": return "Order complete."
         default: return "Waiting for a fulfiller..."
+        }
+    }
+    
+    func confirmReceipt() {
+        isConfirming = true
+        db.collection("orders").document(order.id ?? "").updateData(["status": "completed"]) { error in
+            isConfirming = false
+            if let error = error {
+                print("Error completing order: \(error.localizedDescription)")
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseFirestore
+import FirebaseStorage
 
 struct TaskTrackingView: View {
     let order: Order
@@ -15,8 +16,8 @@ struct TaskTrackingView: View {
     // Photo State
     @State private var selectedImage: UIImage? = nil
     @State private var showImagePicker = false
+    @State private var isUploading = false
     
-    // EXPLICIT INIT ADDED HERE TO FIX ACTIVITYMAINVIEW ERROR
     init(order: Order) {
         self.order = order
     }
@@ -25,9 +26,8 @@ struct TaskTrackingView: View {
         ScrollView {
             VStack(spacing: 30) {
                 
-                // 1. PROGRESS BAR
                 HStack(spacing: 10) {
-                    let statuses = ["claimed", "ordered", "delivered"]
+                    let statuses = ["claimed", "ordered", "delivered", "completed"]
                     let currentIndex = statuses.firstIndex(of: order.status) ?? 0
                     
                     ForEach(Array(statuses.enumerated()), id: \.element) { index, step in
@@ -39,7 +39,6 @@ struct TaskTrackingView: View {
                 }
                 .padding(.top)
 
-                // 2. CURRENT STATUS HEADER
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Current Status: \(order.status.uppercased())")
                         .font(.caption).bold().foregroundColor(.secondary)
@@ -50,7 +49,6 @@ struct TaskTrackingView: View {
 
                 Divider()
 
-                // 3. ACTIONABLE FORMS
                 if order.status == "claimed" {
                     VStack(alignment: .leading, spacing: 20) {
                         CustomTextField(label: "Pickup Name", placeholder: "Enter name used for pickup", text: $pickupName)
@@ -72,20 +70,29 @@ struct TaskTrackingView: View {
                         
                         Button(action: { showImagePicker = true }) {
                             VStack {
-                                Image(systemName: selectedImage == nil ? "plus" : "checkmark.circle.fill")
-                                    .font(.title)
-                                Text(selectedImage == nil ? "UPLOAD" : "IMAGE ATTACHED")
-                                    .fontWeight(.bold)
+                                if let selectedImage = selectedImage {
+                                    Image(uiImage: selectedImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(height: 150)
+                                        .clipped()
+                                } else {
+                                    Image(systemName: "plus")
+                                        .font(.title)
+                                    Text("UPLOAD")
+                                        .fontWeight(.bold)
+                                }
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 150)
                             .background(Color.gray.opacity(0.1))
+                            .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.gray, style: StrokeStyle(lineWidth: 2, dash: [5]))
+                                    .stroke(Color.gray, style: StrokeStyle(lineWidth: 2, dash: selectedImage == nil ? [5] : []))
                             )
                         }
-                        .foregroundColor(selectedImage == nil ? .primary : .green)
+                        .foregroundColor(selectedImage == nil ? .primary : .clear) // Hide text color if image exists
                         
                         Text("Please provide a photo of the food at the drop-off location.")
                             .font(.caption)
@@ -95,18 +102,24 @@ struct TaskTrackingView: View {
                 
                 Spacer(minLength: 20)
                 
-                // 4. SUBMIT BUTTON
-                if order.status != "delivered" {
+                if order.status != "delivered" && order.status != "completed" {
                     Button(action: submitOrderUpdate) {
-                        Text(buttonLabel)
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(isFormValid ? Color.green : Color.gray.opacity(0.5))
-                            .cornerRadius(12)
+                        HStack {
+                            if isUploading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .padding(.trailing, 5)
+                            }
+                            Text(isUploading ? "Uploading..." : buttonLabel)
+                                .font(.headline)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(isFormValid && !isUploading ? Color.green : Color.gray.opacity(0.5))
+                        .cornerRadius(12)
                     }
-                    .disabled(!isFormValid)
+                    .disabled(!isFormValid || isUploading)
                 } else {
                     VStack {
                         Image(systemName: "checkmark.seal.fill")
@@ -123,6 +136,10 @@ struct TaskTrackingView: View {
         }
         .navigationTitle("Track Task")
         .navigationBarTitleDisplayMode(.inline)
+        // Attach the Image Picker Sheet here
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(image: $selectedImage)
+        }
     }
     
     // --- UI Helpers ---
@@ -131,7 +148,8 @@ struct TaskTrackingView: View {
         switch order.status {
         case "claimed": return "Head to Grubhub/Meal Plan to place the order."
         case "ordered": return "Food is on the way. Upload a photo when dropped off."
-        case "delivered": return "Delivery complete! Great job."
+        case "delivered": return "Delivery complete! Waiting for requester confirmation."
+        case "completed": return "Requester confirmed receipt. Great job!"
         default: return "Unknown status"
         }
     }
@@ -151,6 +169,16 @@ struct TaskTrackingView: View {
         return false
     }
 
+    private func updateFirestore(with updateData: [String: Any]) {
+        db.collection("orders").document(order.id ?? "").updateData(updateData) { error in
+            isUploading = false
+            if error == nil {
+            } else {
+                print("Error updating document: \(error?.localizedDescription ?? "Unknown error")")
+            }
+        }
+    }
+
     func submitOrderUpdate() {
         let nextStatus = order.status == "claimed" ? "ordered" : "delivered"
         var updateData: [String: Any] = ["status": nextStatus]
@@ -159,17 +187,50 @@ struct TaskTrackingView: View {
             updateData["pickupName"] = pickupName
             updateData["estimatedTime"] = estimatedTime
             updateData["grubhubOrderId"] = grubhubOrderId
+            
+            updateFirestore(with: updateData)
+            
+        } else if order.status == "ordered" {
+            guard let image = selectedImage else { return }
+            isUploading = true // Show loading spinner
+            
+            uploadImageToStorage(image: image) { url in
+                if let downloadUrl = url {
+                    updateData["proofImageUrl"] = downloadUrl
+                }
+                updateFirestore(with: updateData)
+            }
+        }
+    }
+    
+    private func uploadImageToStorage(image: UIImage, completion: @escaping (String?) -> Void) {
+        guard let imageData = image.jpegData(compressionQuality: 0.7) else {
+            completion(nil)
+            return
         }
         
-        db.collection("orders").document(order.id ?? "").updateData(updateData) { error in
-            if error == nil {
-                // Optional: Dismiss view or just let the snapshot listener update the UI
+        let filename = UUID().uuidString
+        let storageRef = Storage.storage().reference().child("delivery_proofs/\(filename).jpg")
+        
+        storageRef.putData(imageData, metadata: nil) { metadata, error in
+            if let error = error {
+                print("Failed to upload image: \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+            
+            storageRef.downloadURL { url, error in
+                if let error = error {
+                    print("Failed to get download URL: \(error.localizedDescription)")
+                    completion(nil)
+                    return
+                }
+                
+                completion(url?.absoluteString)
             }
         }
     }
 }
-
-// MARK: - Reusable Components (MUST BE OUTSIDE THE MAIN STRUCT)
 
 struct CustomTextField: View {
     let label: String
