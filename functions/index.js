@@ -140,8 +140,8 @@ exports.createConnectAccount = onCall(
 
         const accountLink = await stripe.accountLinks.create({
             account: account.id,
-            refresh_url: "grubu://stripe-refresh",
-            return_url: "grubu://stripe-return",
+            refresh_url: "https://grubu-5710a.web.app/stripe-refresh",
+            return_url: "https://grubu-5710a.web.app/stripe-return",
             type: "account_onboarding",
         });
 
