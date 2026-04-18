@@ -152,10 +152,21 @@ struct RequestTrackingView: View {
     // --- Logic Helpers ---
     func confirmReceipt() {
         isConfirming = true
-        db.collection("orders").document(order.id ?? "").updateData(["status": "completed"]) { error in
-            isConfirming = false
-            if let error = error {
-                print("Error completing order: \(error.localizedDescription)")
+        let paymentController = PaymentController()
+
+        Task {
+            let paid = await paymentController.payoutFulfiller(orderId: order.id ?? "")
+            if paid {
+                db.collection("orders").document(order.id ?? "")
+                    .updateData(["status": "completed"]) { error in
+                        isConfirming = false
+                        if let error = error {
+                            print("Error completing order: \(error.localizedDescription)")
+                        }
+                    }
+            } else {
+                isConfirming = false
+                print("Payout failed")
             }
         }
     }

@@ -6,6 +6,7 @@
 //
 import SwiftUI
 import FirebaseAuth
+import FirebaseFirestore
 
 struct OrderPreviewView: View {
     let order: Order
@@ -15,6 +16,8 @@ struct OrderPreviewView: View {
     
     // Track loading state so the user doesn't double-tap
     @State private var isClaiming = false
+    @State private var currentUser: User?
+    @State private var showConnectSetup = false
     
     var body: some View {
         ZStack {
@@ -138,7 +141,35 @@ struct OrderPreviewView: View {
             .navigationTitle("Request Details")
             .navigationBarTitleDisplayMode(.inline)
             .blur(radius: isClaiming ? 2 : 0)
+            .onAppear { fetchCurrentUser() }
+            .sheet(isPresented: $showConnectSetup) {
+                NavigationView {
+                    BankLinkView()
+                        .navigationTitle("Setup Required")
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Cancel") { showConnectSetup = false }
+                            }
+                        }
+                }
+            }
         }
+    }
+    
+    func handleAcceptTapped() {
+        guard let user = currentUser else { return }
+        if user.stripeConnectAccountId == nil || user.stripeConnectAccountId?.isEmpty == true {
+            showConnectSetup = true
+        } else {
+            processOrderClaim()
+        }
+    }
+    func fetchCurrentUser() {
+        guard let uid = authController.userSession?.uid else { return }
+        Firestore.firestore().collection("users").document(uid)
+            .getDocument { snapshot, _ in
+                self.currentUser = try? snapshot?.data(as: User.self)
+            }
     }
     
     // logic to connect to marketController
