@@ -13,7 +13,6 @@ struct Order: Identifiable, Codable {
     var fulfillerId: String?
     var restaurantName: String
     var orderDetails: [String]
-    
     var pickupName: String?
     var estimatedTime: String?
     var foodCost: Double
@@ -21,5 +20,6 @@ struct Order: Identifiable, Codable {
     var grubhubOrderId: String?
     var status: String
     var proofImageUrl: String?
+    var stripePaymentIntentId: String?
     @ServerTimestamp var createdAt: Date?
 }
