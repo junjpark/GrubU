@@ -116,7 +116,7 @@ struct OrderPreviewView: View {
                         .disabled(isClaiming)
                         
                         Button(action: {
-                            processOrderClaim()
+                            handleAcceptTapped()
                         }) {
                             if isClaiming {
                                 ProgressView()
@@ -167,8 +167,16 @@ struct OrderPreviewView: View {
     func fetchCurrentUser() {
         guard let uid = authController.userSession?.uid else { return }
         Firestore.firestore().collection("users").document(uid)
-            .getDocument { snapshot, _ in
-                self.currentUser = try? snapshot?.data(as: User.self)
+            .getDocument { snapshot, error in
+                if let error = error {
+                    print("OrderPreviewView: Failed to fetch user - \(error.localizedDescription)")
+                    return
+                }
+                do {
+                    self.currentUser = try snapshot?.data(as: User.self)
+                } catch {
+                    print("OrderPreviewView: Failed to decode user - \(error)")
+                }
             }
     }
     

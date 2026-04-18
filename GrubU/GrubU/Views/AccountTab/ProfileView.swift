@@ -63,6 +63,26 @@ struct ProfileView: View {
                     }
                 }
 
+                Section(header: Text("Payments")) {
+                    NavigationLink(destination: BankLinkView()) {
+                        HStack {
+                            Image(systemName: "building.columns.fill")
+                                .foregroundColor(.orange)
+                            Text("Link Bank Account")
+                            Spacer()
+                            if currentUser?.stripeConnectAccountId != nil {
+                                Text("Connected")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                            } else {
+                                Text("Not Set Up")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+
                 Section {
                     Button(action: {
                         authController.signOut()
