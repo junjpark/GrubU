@@ -5,16 +5,14 @@
 //  Created by Julie Baguio on 4/7/26.
 //
 import SwiftUI
-import Foundation
 
 struct FinalCheckoutView: View {
     @ObservedObject var menuManager: MenuManager
-    @State private var bounty: Double = 5.0
-    
-    var totalCharge: Double {
-        menuManager.totalCost + bounty
+
+    var bounty: Double {
+        (menuManager.totalCost * 0.50 * 100).rounded() / 100
     }
-    
+
     var body: some View {
         Form {
             Section(header: Text("Items")) {
@@ -29,21 +27,21 @@ struct FinalCheckoutView: View {
                     menuManager.removeFromBag(at: offsets)
                 }
             }
-            
-            Section(header: Text("Payment")) {
+
+            Section(header: Text("Cost Breakdown")) {
                 HStack {
-                    Text("Food Total")
+                    Text("Meal Points Cost")
                     Spacer()
                     Text("$\(menuManager.totalCost, specifier: "%.2f")")
+                        .foregroundColor(.secondary)
                 }
-                Stepper("Bounty: $\(bounty, specifier: "%.0f")", value: $bounty, in: 2...20)
                 HStack {
-                    Text("Total Charge").bold()
+                    Text("Bounty (50%)")
                     Spacer()
-                    Text("$\(totalCharge, specifier: "%.2f")").bold()
+                    Text("$\(bounty, specifier: "%.2f")")
                 }
             }
-            
+
             Section {
                 NavigationLink(destination: OrderReviewView(
                     menuManager: menuManager,

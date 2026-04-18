@@ -21,18 +21,27 @@ struct ProfileView: View {
                             .resizable()
                             .frame(width: 50, height: 50)
                             .foregroundColor(.orange)
-                        
+
                         VStack(alignment: .leading) {
                             Text(currentUser?.displayName ?? "Loading...")
                                 .font(.headline)
-                            Text(currentUser?.university ?? "Washington University in St. Louis")
+                            Text(currentUser?.university ?? "")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
                     }
                     .padding(.vertical, 8)
+
+                    if let email = currentUser?.email {
+                        HStack {
+                            Text("Email")
+                            Spacer()
+                            Text(email)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
-                
+
                 Section(header: Text("Stats")) {
                     HStack {
                         Text("Rating")
@@ -53,7 +62,7 @@ struct ProfileView: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
                 Section {
                     Button(action: {
                         authController.signOut()
@@ -69,18 +78,30 @@ struct ProfileView: View {
             }
         }
     }
-    
+
     func fetchUserData() {
-        guard let uid = authController.userSession?.uid else { return }
-        
+        guard let uid = authController.userSession?.uid else {
+            print("ProfileView: No user session found")
+            return
+        }
+
         let db = Firestore.firestore()
         db.collection("users").document(uid).addSnapshotListener { snapshot, error in
-            guard let document = snapshot else {
-                print("Error fetching user: \(error?.localizedDescription ?? "Unknown error")")
+            if let error = error {
+                print("ProfileView: Firestore error - \(error.localizedDescription)")
                 return
             }
-            
-            self.currentUser = try? document.data(as: User.self)
+
+            guard let document = snapshot, document.exists else {
+                print("ProfileView: Document does not exist for uid \(uid)")
+                return
+            }
+
+            do {
+                self.currentUser = try document.data(as: User.self)
+            } catch {
+                print("ProfileView: Failed to decode User - \(error)")
+            }
         }
     }
 }
