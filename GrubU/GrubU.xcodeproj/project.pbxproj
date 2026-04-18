@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9A5D0DE32F93FE1900400BEA /* Stripe in Frameworks */ = {isa = PBXBuildFile; productRef = 9A5D0DE22F93FE1900400BEA /* Stripe */; };
+		9A5D0DE52F93FE1900400BEA /* StripePaymentSheet in Frameworks */ = {isa = PBXBuildFile; productRef = 9A5D0DE42F93FE1900400BEA /* StripePaymentSheet */; };
 		9A916DD82F84BC1F006BF0CC /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 9A916DD72F84BC1F006BF0CC /* FirebaseAuth */; };
 		9A916DDA2F84BC1F006BF0CC /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 9A916DD92F84BC1F006BF0CC /* FirebaseFirestore */; };
 		9A916DDC2F84BC1F006BF0CC /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 9A916DDB2F84BC1F006BF0CC /* FirebaseFunctions */; };
@@ -48,7 +50,9 @@
 				9A916DDC2F84BC1F006BF0CC /* FirebaseFunctions in Frameworks */,
 				9A916DD82F84BC1F006BF0CC /* FirebaseAuth in Frameworks */,
 				9A916DE02F84BC1F006BF0CC /* FirebaseStorage in Frameworks */,
+				9A5D0DE52F93FE1900400BEA /* StripePaymentSheet in Frameworks */,
 				9A916DDA2F84BC1F006BF0CC /* FirebaseFirestore in Frameworks */,
+				9A5D0DE32F93FE1900400BEA /* Stripe in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -96,6 +100,8 @@
 				9A916DDB2F84BC1F006BF0CC /* FirebaseFunctions */,
 				9A916DDD2F84BC1F006BF0CC /* FirebaseMessaging */,
 				9A916DDF2F84BC1F006BF0CC /* FirebaseStorage */,
+				9A5D0DE22F93FE1900400BEA /* Stripe */,
+				9A5D0DE42F93FE1900400BEA /* StripePaymentSheet */,
 			);
 			productName = GrubU;
 			productReference = 9A916DC82F84B911006BF0CC /* GrubU.app */;
@@ -127,6 +133,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				9A916DD62F84BC1F006BF0CC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				9A5D0DE12F93FE1900400BEA /* XCRemoteSwiftPackageReference "stripe-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9A916DC92F84B911006BF0CC /* Products */;
@@ -372,6 +379,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		9A5D0DE12F93FE1900400BEA /* XCRemoteSwiftPackageReference "stripe-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stripe/stripe-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 25.11.0;
+			};
+		};
 		9A916DD62F84BC1F006BF0CC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
@@ -383,6 +398,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		9A5D0DE22F93FE1900400BEA /* Stripe */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A5D0DE12F93FE1900400BEA /* XCRemoteSwiftPackageReference "stripe-ios" */;
+			productName = Stripe;
+		};
+		9A5D0DE42F93FE1900400BEA /* StripePaymentSheet */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A5D0DE12F93FE1900400BEA /* XCRemoteSwiftPackageReference "stripe-ios" */;
+			productName = StripePaymentSheet;
+		};
 		9A916DD72F84BC1F006BF0CC /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 9A916DD62F84BC1F006BF0CC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;

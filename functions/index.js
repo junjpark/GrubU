@@ -197,6 +197,7 @@ exports.createPaymentIntent = onCall(
             paymentIntent: paymentIntent.client_secret,
             ephemeralKey: ephemeralKey.secret,
             customer: stripeCustomerId,
+            publishableKey: "pk_test_51TMtPm2NiUAopVrwVBwS1YzVD61cskrrKFtfwLSfeVB5vPANUAbLU8KvZ3F1OWy9eOEblnZ8tEhhHvdqOqt4UNMY00YP4KSM41",
         };
     }
 );
