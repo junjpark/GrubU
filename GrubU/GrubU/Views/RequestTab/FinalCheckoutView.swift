@@ -8,11 +8,17 @@ import SwiftUI
 import Foundation
 import FirebaseFirestore
 import FirebaseAuth
+import StripePaymentSheet
 
 struct FinalCheckoutView: View {
     @ObservedObject var menuManager: MenuManager
+    @StateObject private var paymentController = PaymentController()
     @State private var bounty: Double = 5.0
     @Environment(\.dismiss) var dismiss // To close the view after posting
+    
+    var totalCharge: Double {
+        menuManager.totalCost + bounty
+    }
     
     var body: some View {
         Form {
@@ -36,16 +42,59 @@ struct FinalCheckoutView: View {
                     Text("$\(menuManager.totalCost, specifier: "%.2f")")
                 }
                 Stepper("Bounty: $\(bounty, specifier: "%.0f")", value: $bounty, in: 2...20)
+                HStack {
+                    Text("Total Charge").bold()
+                    Spacer()
+                    Text("$\(totalCharge, specifier: "%.2f")").bold()
+                }
             }
             
-            Button("Confirm & Post Request") {
-                postOrderToFirebase()
+            if let error = paymentController.errorMessage {
+                Section {
+                    Text(error).foregroundColor(.red).font(.caption)
+                }
             }
-            .frame(maxWidth: .infinity)
-            .foregroundColor(.orange)
-            .bold()
+            
+            Section {
+                if let paymentSheet = paymentController.paymentSheet {
+                    PaymentSheet.PaymentButton(
+                        paymentSheet: paymentSheet,
+                        onCompletion: handlePaymentResult
+                    ) {
+                        Text("Pay & Post Request")
+                            .frame(maxWidth: .infinity)
+                            .foregroundColor(.orange)
+                            .bold()
+                    }
+                } else {
+                    Button("Prepare Payment") {
+                        Task {
+                            await paymentController.preparePaymentSheet(amount: totalCharge)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .foregroundColor(.orange)
+                    .bold()
+                }
+            }
         }
         .navigationTitle("Checkout")
+        .onAppear {
+            Task {
+                await paymentController.preparePaymentSheet(amount: totalCharge)
+            }
+        }
+    }
+    
+    func handlePaymentResult(_ result: PaymentSheetResult) {
+        switch result {
+        case .completed:
+            postOrderToFirebase()
+        case .canceled:
+            break
+        case .failed(let error):
+            paymentController.errorMessage = error.localizedDescription
+        }
     }
     
     func postOrderToFirebase() {
