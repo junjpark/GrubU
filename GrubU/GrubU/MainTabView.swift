@@ -16,10 +16,8 @@ struct MainTabView: View {
     @EnvironmentObject var authController: AuthController
     @StateObject private var activityController = ActivityController()
 
-    var activityBadgeCount: Int {
-        let requestUpdates = activityController.requestedOrders.filter { $0.status != "open" && $0.status != "completed" }.count
-        let taskUpdates = activityController.fulfillingTasks.filter { $0.status != "completed" }.count
-        return requestUpdates + taskUpdates
+    private var activityTabDot: Bool {
+        activityController.hasAnyUnreadActivity
     }
 
     var body: some View {
@@ -39,9 +37,17 @@ struct MainTabView: View {
 
             ActivityMainView(activityController: activityController, tabState: tabState)
                 .tabItem {
-                    Label("Activity", systemImage: "arrow.up.arrow.down.circle.fill")
+                    ZStack(alignment: .topTrailing) {
+                        Label("Activity", systemImage: "arrow.up.arrow.down.circle.fill")
+                        if activityTabDot {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 8, height: 8)
+                                .offset(x: 12, y: -6)
+                                .accessibilityLabel("Unread activity")
+                        }
+                    }
                 }
-                .badge(activityBadgeCount > 0 ? activityBadgeCount : 0)
                 .tag(2)
 
             ProfileView()
@@ -52,6 +58,7 @@ struct MainTabView: View {
         }
         .accentColor(.orange)
         .environmentObject(tabState)
+        .environmentObject(activityController)
         .onAppear {
             if let uid = authController.userSession?.uid {
                 activityController.fetchActivity(for: uid)

@@ -3,10 +3,12 @@ import FirebaseFirestore
 
 struct RequestTrackingView: View {
     let initialOrder: Order
+    @EnvironmentObject var activityController: ActivityController
     @Environment(\.dismiss) var dismiss
     private var db = Firestore.firestore()
 
     @State private var liveOrder: Order?
+    @State private var orderListener: ListenerRegistration?
     @State private var isConfirming = false
     @State private var selectedRating: Int = 5
     @State private var ratingSubmitted = false
@@ -170,7 +172,19 @@ struct RequestTrackingView: View {
         }
         .navigationTitle("Track Request")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { listenToOrder() }
+        .onAppear {
+            listenToOrder()
+            let oid = initialOrder.id ?? ""
+            if !oid.isEmpty {
+                activityController.setActiveRequestDetailOrderId(oid)
+                activityController.markRequestOrderSeen(oid)
+            }
+        }
+        .onDisappear {
+            activityController.setActiveRequestDetailOrderId(nil)
+            orderListener?.remove()
+            orderListener = nil
+        }
     }
 
     var statusMessage: String {
@@ -184,8 +198,9 @@ struct RequestTrackingView: View {
     }
 
     func listenToOrder() {
+        orderListener?.remove()
         guard let orderId = initialOrder.id else { return }
-        db.collection("orders").document(orderId)
+        orderListener = db.collection("orders").document(orderId)
             .addSnapshotListener { snapshot, _ in
                 guard let snapshot = snapshot else { return }
                 self.liveOrder = try? snapshot.data(as: Order.self)

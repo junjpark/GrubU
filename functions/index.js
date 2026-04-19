@@ -53,13 +53,28 @@ exports.sendOrderNotifications = onDocumentUpdated("orders/{orderId}", async (ev
         title = "Order Confirmed!";
         body = `The requester confirmed they received the food. Great job!`;
 
-        if (fulfillerId) {
-            const bounty = newData.bountyAmount || 0;
-            await admin.firestore().collection("users").doc(fulfillerId).update({
+        const db = admin.firestore();
+        const batch = db.batch();
+        const usersCol = db.collection("users");
+
+        if (requesterId && fulfillerId && requesterId === fulfillerId) {
+            batch.update(usersCol.doc(requesterId), {
                 completedOrders: admin.firestore.FieldValue.increment(1),
-                usdBalance: admin.firestore.FieldValue.increment(bounty),
             });
+        } else {
+            if (requesterId) {
+                batch.update(usersCol.doc(requesterId), {
+                    completedOrders: admin.firestore.FieldValue.increment(1),
+                });
+            }
+            if (fulfillerId) {
+                batch.update(usersCol.doc(fulfillerId), {
+                    completedOrders: admin.firestore.FieldValue.increment(1),
+                });
+            }
         }
+
+        await batch.commit();
     } else {
         return null;
     }

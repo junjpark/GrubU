@@ -10,8 +10,9 @@ import FirebaseAuth
 
 struct ProfileView: View {
     @EnvironmentObject var authController: AuthController
-    @State private var currentUser: User? = nil // Holds the fetched user data
-    
+    @State private var currentUser: User? = nil
+    @State private var userListener: ListenerRegistration?
+
     var body: some View {
         NavigationView {
             List {
@@ -46,13 +47,7 @@ struct ProfileView: View {
                     HStack {
                         Text("Rating")
                         Spacer()
-                        Text("\(currentUser?.rating ?? 5.0, specifier: "%.1f") ★")
-                            .foregroundColor(.secondary)
-                    }
-                    HStack {
-                        Text("Balance")
-                        Spacer()
-                        Text("$\(currentUser?.usdBalance ?? 0.0, specifier: "%.2f")")
+                        Text(ratingDisplay)
                             .foregroundColor(.secondary)
                     }
                     HStack {
@@ -96,7 +91,16 @@ struct ProfileView: View {
             .onAppear {
                 fetchUserData()
             }
+            .onDisappear {
+                userListener?.remove()
+                userListener = nil
+            }
         }
+    }
+
+    private var ratingDisplay: String {
+        guard let r = currentUser?.rating else { return "—" }
+        return String(format: "%.1f ★", r)
     }
 
     func fetchUserData() {
@@ -105,8 +109,10 @@ struct ProfileView: View {
             return
         }
 
+        userListener?.remove()
+
         let db = Firestore.firestore()
-        db.collection("users").document(uid).addSnapshotListener { snapshot, error in
+        userListener = db.collection("users").document(uid).addSnapshotListener { snapshot, error in
             if let error = error {
                 print("ProfileView: Firestore error - \(error.localizedDescription)")
                 return
@@ -118,7 +124,10 @@ struct ProfileView: View {
             }
 
             do {
-                self.currentUser = try document.data(as: User.self)
+                let user = try document.data(as: User.self)
+                DispatchQueue.main.async {
+                    self.currentUser = user
+                }
             } catch {
                 print("ProfileView: Failed to decode User - \(error)")
             }

@@ -4,10 +4,12 @@ import FirebaseStorage
 
 struct TaskTrackingView: View {
     let initialOrder: Order
+    @EnvironmentObject var activityController: ActivityController
     @Environment(\.dismiss) var dismiss
     private var db = Firestore.firestore()
 
     @State private var liveOrder: Order?
+    @State private var orderListener: ListenerRegistration?
     @State private var pickupName: String = ""
     @State private var estimatedTime: String = ""
     @State private var grubhubOrderId: String = ""
@@ -139,7 +141,19 @@ struct TaskTrackingView: View {
         }
         .navigationTitle("Track Task")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { listenToOrder() }
+        .onAppear {
+            listenToOrder()
+            let oid = initialOrder.id ?? ""
+            if !oid.isEmpty {
+                activityController.setActiveTaskDetailOrderId(oid)
+                activityController.markTaskOrderSeen(oid)
+            }
+        }
+        .onDisappear {
+            activityController.setActiveTaskDetailOrderId(nil)
+            orderListener?.remove()
+            orderListener = nil
+        }
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage)
         }
@@ -170,8 +184,9 @@ struct TaskTrackingView: View {
     }
 
     func listenToOrder() {
+        orderListener?.remove()
         guard let orderId = initialOrder.id else { return }
-        db.collection("orders").document(orderId)
+        orderListener = db.collection("orders").document(orderId)
             .addSnapshotListener { snapshot, _ in
                 guard let snapshot = snapshot else { return }
                 self.liveOrder = try? snapshot.data(as: Order.self)
