@@ -94,8 +94,22 @@ struct LoginView: View {
         showResendButton = false
 
         Auth.auth().signIn(withEmail: email, password: password) { result, error in
-            if let error = error {
-                errorMessage = error.localizedDescription
+            if let error = error as NSError? {
+                let code = AuthErrorCode(rawValue: error.code)
+                switch code {
+                case .wrongPassword, .invalidCredential:
+                    errorMessage = "Incorrect password."
+                case .userNotFound:
+                    errorMessage = "No account found with that email."
+                case .invalidEmail:
+                    errorMessage = "Please enter a valid email address."
+                case .userDisabled:
+                    errorMessage = "This account has been disabled."
+                case .tooManyRequests:
+                    errorMessage = "Too many attempts. Please try again later."
+                default:
+                    errorMessage = "Login failed. Please try again."
+                }
                 return
             }
 
