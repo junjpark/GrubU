@@ -140,8 +140,8 @@ exports.createConnectAccount = onCall(
 
         const accountLink = await stripe.accountLinks.create({
             account: account.id,
-            refresh_url: "grubu://stripe-refresh",
-            return_url: "grubu://stripe-return",
+            refresh_url: "https://grubu-5710a.web.app/stripe-refresh",
+            return_url: "https://grubu-5710a.web.app/stripe-return",
             type: "account_onboarding",
         });
 
@@ -197,6 +197,7 @@ exports.createPaymentIntent = onCall(
             paymentIntent: paymentIntent.client_secret,
             ephemeralKey: ephemeralKey.secret,
             customer: stripeCustomerId,
+            publishableKey: "pk_test_51TMtPm2NiUAopVrwVBwS1YzVD61cskrrKFtfwLSfeVB5vPANUAbLU8KvZ3F1OWy9eOEblnZ8tEhhHvdqOqt4UNMY00YP4KSM41",
         };
     }
 );

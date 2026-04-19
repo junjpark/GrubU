@@ -5,15 +5,14 @@
 //  Created by Julie Baguio on 4/7/26.
 //
 import SwiftUI
-import Foundation
-import FirebaseFirestore
-import FirebaseAuth
 
 struct FinalCheckoutView: View {
     @ObservedObject var menuManager: MenuManager
-    @State private var bounty: Double = 5.0
-    @Environment(\.dismiss) var dismiss // To close the view after posting
-    
+
+    var bounty: Double {
+        (menuManager.totalCost * 0.50 * 100).rounded() / 100
+    }
+
     var body: some View {
         Form {
             Section(header: Text("Items")) {
@@ -28,68 +27,36 @@ struct FinalCheckoutView: View {
                     menuManager.removeFromBag(at: offsets)
                 }
             }
-            
-            Section(header: Text("Payment")) {
+
+            Section(header: Text("Cost Breakdown")) {
                 HStack {
-                    Text("Food Total")
+                    Text("Meal Points Cost")
                     Spacer()
                     Text("$\(menuManager.totalCost, specifier: "%.2f")")
+                        .foregroundColor(.secondary)
                 }
-                Stepper("Bounty: $\(bounty, specifier: "%.0f")", value: $bounty, in: 2...20)
+                HStack {
+                    Text("Bounty (50%)")
+                    Spacer()
+                    Text("$\(bounty, specifier: "%.2f")")
+                }
             }
-            
-            Button("Confirm & Post Request") {
-                postOrderToFirebase()
+
+            Section {
+                NavigationLink(destination: OrderReviewView(
+                    menuManager: menuManager,
+                    restaurantName: menuManager.restaurants.first(where: { $0.id == menuManager.currentRestaurantID })?.name ?? "Unknown",
+                    items: menuManager.bag,
+                    foodCost: menuManager.totalCost,
+                    bounty: bounty
+                )) {
+                    Text("Review Order")
+                        .frame(maxWidth: .infinity)
+                        .foregroundColor(.orange)
+                        .bold()
+                }
             }
-            .frame(maxWidth: .infinity)
-            .foregroundColor(.orange)
-            .bold()
         }
         .navigationTitle("Checkout")
-    }
-    
-    func postOrderToFirebase() {
-        // 1. Get the restaurant name from the first item in the bag (since they are all the same)
-        // We use a fallback "Unknown Restaurant" just in case the bag is empty
-        let restaurantName = menuManager.restaurants.first(where: { $0.id == menuManager.currentRestaurantID })?.name ?? "Unknown Restaurant"
-        
-        // 2. Initialize the Order struct
-        
-        let newOrder = Order(
-            
-            requesterId: Auth.auth().currentUser?.uid ?? "anonymous",
-            fulfillerId: "", // Empty because no one has picked it up yet
-            restaurantName: restaurantName,
-            orderDetails: menuManager.bag.map { $0.name }, // Converts [MenuItem] to [String]
-            pickupName: nil,       // To be filled later
-            estimatedTime: nil,    // To be filled later
-            foodCost: menuManager.totalCost,
-            bountyAmount: bounty,
-            grubhubOrderId: "",    // To be filled by user or system later
-            status: "open",     // Initial status
-            proofImageUrl: ""      // No image yet
-        )
-        
-        // 3. Save to Firestore
-        let db = Firestore.firestore()
-        do {
-            // This automatically uses Codable to map your struct to Firestore fields
-            try db.collection("orders").addDocument(from: newOrder) { error in
-                if let error = error {
-                    print("Error saving order: \(error.localizedDescription)")
-                } else {
-                    print("Order successfully posted!")
-                    
-                    // 4. Clean up the bag and manager state
-                    menuManager.bag.removeAll()
-                    menuManager.currentRestaurantID = nil
-                    
-                    // 5. Return to the previous screen
-                    dismiss()
-                }
-            }
-        } catch {
-            print("Error encoding order: \(error.localizedDescription)")
-        }
     }
 }

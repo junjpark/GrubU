@@ -5,9 +5,11 @@ struct RequestTrackingView: View {
     let order: Order
     @Environment(\.dismiss) var dismiss
     private var db = Firestore.firestore()
-    
+
     @State private var isConfirming = false
-    
+    @State private var showRating = false
+    @State private var selectedRating: Int = 5
+
     init(order: Order) {
         self.order = order
     }
@@ -39,7 +41,7 @@ struct RequestTrackingView: View {
                 Divider()
 
                 if order.status == "completed" {
-                    VStack {
+                    VStack(spacing: 16) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 60))
                             .foregroundColor(.orange)
@@ -47,8 +49,36 @@ struct RequestTrackingView: View {
                             .padding(.bottom, 5)
                         Text("Order Complete")
                             .font(.title2).bold().foregroundColor(.orange)
-                        Text("This request is now finished.")
-                            .font(.subheadline).foregroundColor(.secondary)
+
+                        if order.fulfillerRating != nil {
+                            Text("You rated this fulfiller \(Int(order.fulfillerRating!))★")
+                                .font(.subheadline).foregroundColor(.secondary)
+                        } else {
+                            Text("How was your fulfiller?")
+                                .font(.subheadline).foregroundColor(.secondary)
+
+                            HStack(spacing: 12) {
+                                ForEach(1...5, id: \.self) { star in
+                                    Image(systemName: star <= selectedRating ? "star.fill" : "star")
+                                        .font(.title)
+                                        .foregroundColor(.orange)
+                                        .onTapGesture {
+                                            selectedRating = star
+                                        }
+                                }
+                            }
+                            .padding(.vertical, 4)
+
+                            Button(action: submitRating) {
+                                Text("Submit Rating")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.orange)
+                                    .cornerRadius(12)
+                            }
+                        }
                     }
                     
                 } else if order.status == "delivered" {
@@ -152,11 +182,47 @@ struct RequestTrackingView: View {
     // --- Logic Helpers ---
     func confirmReceipt() {
         isConfirming = true
-        db.collection("orders").document(order.id ?? "").updateData(["status": "completed"]) { error in
-            isConfirming = false
-            if let error = error {
-                print("Error completing order: \(error.localizedDescription)")
+        let paymentController = PaymentController()
+
+        Task {
+            let paid = await paymentController.payoutFulfiller(orderId: order.id ?? "")
+            if paid {
+                db.collection("orders").document(order.id ?? "")
+                    .updateData(["status": "completed"]) { error in
+                        isConfirming = false
+                        if let error = error {
+                            print("Error completing order: \(error.localizedDescription)")
+                        }
+                    }
+            } else {
+                isConfirming = false
+                print("Payout failed")
             }
+        }
+    }
+
+    func submitRating() {
+        guard let orderId = order.id, let fulfillerId = order.fulfillerId, !fulfillerId.isEmpty else { return }
+        let rating = Double(selectedRating)
+
+        db.collection("orders").document(orderId).updateData([
+            "fulfillerRating": rating
+        ])
+
+        let fulfillerRef = db.collection("users").document(fulfillerId)
+        fulfillerRef.getDocument { snapshot, error in
+            guard let data = snapshot?.data() else { return }
+
+            let currentRating = data["rating"] as? Double ?? 5.0
+            let totalRatings = data["totalRatingsReceived"] as? Int ?? 0
+
+            let newTotal = totalRatings + 1
+            let newAverage = ((currentRating * Double(totalRatings)) + rating) / Double(newTotal)
+
+            fulfillerRef.updateData([
+                "rating": newAverage,
+                "totalRatingsReceived": newTotal
+            ])
         }
     }
 }

@@ -10,24 +10,28 @@ import SwiftUI
 import Combine
 
 class AuthController: ObservableObject {
-    // This variable broadcasts its state to the whole app
     @Published var userSession: FirebaseAuth.User?
-    
+
     init() {
-        // This listener runs in the background forever.
-        // It fires automatically whenever someone logs in, logs out, or signs up.
-        _ = Auth.auth().addStateDidChangeListener { auth, user in
-            
-            // Only consider them "logged in" to the app if they clicked the email link!
+        _ = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             if let user = user, user.isEmailVerified {
-                self.userSession = user
+                self?.userSession = user
             } else {
-                self.userSession = nil
+                self?.userSession = nil
             }
         }
     }
-    
-    // A simple global logout function we can call from the Home screen later
+
+    func refreshVerification() {
+        Auth.auth().currentUser?.reload { [weak self] _ in
+            DispatchQueue.main.async {
+                if let user = Auth.auth().currentUser, user.isEmailVerified {
+                    self?.userSession = user
+                }
+            }
+        }
+    }
+
     func signOut() {
         try? Auth.auth().signOut()
     }
