@@ -218,24 +218,15 @@ struct RequestTrackingView: View {
         let rating = Double(selectedRating)
         ratingSubmitted = true
 
+        // fulfiller profile is updated by Cloud Function syncFulfillerRatingFromOrder
+        // (requesters cannot write other users' documents under typical Firestore rules).
         db.collection("orders").document(orderId).updateData([
             "fulfillerRating": rating
-        ])
-
-        let fulfillerRef = db.collection("users").document(fulfillerId)
-        fulfillerRef.getDocument { snapshot, _ in
-            guard let data = snapshot?.data() else { return }
-
-            let currentRating = data["rating"] as? Double ?? 5.0
-            let totalRatings = data["totalRatingsReceived"] as? Int ?? 0
-
-            let newTotal = totalRatings + 1
-            let newAverage = ((currentRating * Double(totalRatings)) + rating) / Double(newTotal)
-
-            fulfillerRef.updateData([
-                "rating": newAverage,
-                "totalRatingsReceived": newTotal
-            ])
+        ]) { error in
+            if let error = error {
+                print("submitRating: order update failed - \(error.localizedDescription)")
+                DispatchQueue.main.async { ratingSubmitted = false }
+            }
         }
     }
 }

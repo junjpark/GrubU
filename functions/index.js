@@ -97,6 +97,87 @@ exports.sendOrderNotifications = onDocumentUpdated("orders/{orderId}", async (ev
     return null;
 });
 
+/**
+ * Requesters can update fulfillerRating on their order, but Firestore rules
+ * typically block them from writing another user's profile. Aggregate here.
+ */
+exports.syncFulfillerRatingFromOrder = onDocumentUpdated("orders/{orderId}", async (event) => {
+    const before = event.data.before.data() || {};
+    const after = event.data.after.data() || {};
+
+    const prevRating = before.fulfillerRating;
+    const nextRating = after.fulfillerRating;
+
+    if (nextRating === undefined || nextRating === null) {
+        return null;
+    }
+    if (prevRating === nextRating) {
+        return null;
+    }
+
+    const fulfillerId = after.fulfillerId;
+    if (!fulfillerId || typeof fulfillerId !== "string") {
+        return null;
+    }
+
+    const toNumber = (v) => {
+        if (typeof v === "number" && !Number.isNaN(v)) return v;
+        if (typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v))) return Number(v);
+        return null;
+    };
+
+    const next = toNumber(nextRating);
+    const prev = prevRating === undefined || prevRating === null ? null : toNumber(prevRating);
+    if (next === null) {
+        return null;
+    }
+
+    const db = admin.firestore();
+    const userRef = db.collection("users").doc(fulfillerId);
+
+    try {
+        await db.runTransaction(async (t) => {
+            const userSnap = await t.get(userRef);
+            if (!userSnap.exists) {
+                console.log("syncFulfillerRatingFromOrder: no user doc for fulfiller", fulfillerId);
+                return;
+            }
+
+            const ud = userSnap.data() || {};
+            const totalRatingsRaw = ud.totalRatingsReceived;
+            const totalRatings =
+                typeof totalRatingsRaw === "number" && !Number.isNaN(totalRatingsRaw)
+                    ? totalRatingsRaw
+                    : Number(totalRatingsRaw) || 0;
+
+            const currentRatingRaw = ud.rating;
+            const currentRating =
+                typeof currentRatingRaw === "number" && !Number.isNaN(currentRatingRaw)
+                    ? currentRatingRaw
+                    : Number(currentRatingRaw) || 0;
+
+            if (prev === null) {
+                const newTotal = totalRatings + 1;
+                const numerator = currentRating * totalRatings + next;
+                const newAverage = newTotal > 0 ? numerator / newTotal : next;
+                t.update(userRef, {
+                    rating: newAverage,
+                    totalRatingsReceived: newTotal,
+                });
+                return;
+            }
+
+            const count = Math.max(1, totalRatings);
+            const newAverage = (currentRating * count - prev + next) / count;
+            t.update(userRef, { rating: newAverage });
+        });
+    } catch (e) {
+        console.error("syncFulfillerRatingFromOrder:", e);
+    }
+
+    return null;
+});
+
 //Stripe setup
 exports.createStripeCustomer = onCall(
     { secrets: [stripeSecretKey] },
