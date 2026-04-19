@@ -8,22 +8,28 @@ import FirebaseAuth
 
 struct ActivityMainView: View {
     @EnvironmentObject var authController: AuthController
-    @StateObject private var activityController = ActivityController()
-    @State private var selection = 0 // 0 = Requested, 1 = Fulfilling
-    
+    @ObservedObject var activityController: ActivityController
+    @ObservedObject var tabState: TabState
+
+    var requestBadge: Int {
+        activityController.requestedOrders.filter { $0.status != "open" && $0.status != "completed" }.count
+    }
+
+    var taskBadge: Int {
+        activityController.fulfillingTasks.filter { $0.status != "completed" }.count
+    }
+
     var body: some View {
         NavigationView {
             VStack {
-                // The Segmented Control
-                Picker("Tab", selection: $selection) {
-                    Text("My Requests").tag(0)
-                    Text("My Tasks").tag(1)
+                Picker("Tab", selection: $tabState.activitySegment) {
+                    Text(requestBadge > 0 ? "My Requests (\(requestBadge))" : "My Requests").tag(0)
+                    Text(taskBadge > 0 ? "My Tasks (\(taskBadge))" : "My Tasks").tag(1)
                 }
                 .pickerStyle(.segmented)
                 .padding()
-                
-                // The Traffic Cop: Route to the correct separated List View
-                if selection == 0 {
+
+                if tabState.activitySegment == 0 {
                     MyRequestsListView(orders: activityController.requestedOrders)
                 } else {
                     MyTasksListView(orders: activityController.fulfillingTasks)

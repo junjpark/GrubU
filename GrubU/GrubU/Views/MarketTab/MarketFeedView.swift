@@ -6,17 +6,36 @@ struct MarketFeedView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    ForEach(marketController.openOrders) { order in
-                        NavigationLink(destination: OrderPreviewView(order: order)) {
-                            OrderListCell(order: order)
+            Group {
+                if marketController.openOrders.isEmpty {
+                    VStack(spacing: 16) {
+                        Spacer()
+                        Image(systemName: "tray")
+                            .font(.system(size: 50))
+                            .foregroundColor(.gray.opacity(0.5))
+                        Text("No orders available")
+                            .font(.title3)
+                            .foregroundColor(.secondary)
+                        Text("Check back later for new requests.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary.opacity(0.7))
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            ForEach(marketController.openOrders) { order in
+                                NavigationLink(destination: OrderPreviewView(order: order)) {
+                                    OrderListCell(order: order)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .padding(.horizontal, 16)
+                        .padding(.top, 10)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
             }
             .navigationTitle("Market")
             .background(Color(.systemGroupedBackground))

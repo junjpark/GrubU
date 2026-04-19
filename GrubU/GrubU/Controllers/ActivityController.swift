@@ -17,7 +17,8 @@ class ActivityController: ObservableObject {
     private var listeners: [ListenerRegistration] = []
 
     func fetchActivity(for uid: String) {
-        //fetch orders that user created
+        guard listeners.isEmpty else { return }
+
         let reqListener = db.collection("orders")
             .whereField("requesterId", isEqualTo: uid)
             .addSnapshotListener { snapshot, _ in

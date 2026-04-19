@@ -3,21 +3,26 @@ import FirebaseFirestore
 import FirebaseStorage
 
 struct TaskTrackingView: View {
-    let order: Order
+    let initialOrder: Order
     @Environment(\.dismiss) var dismiss
     private var db = Firestore.firestore()
-    
+
+    @State private var liveOrder: Order?
     @State private var pickupName: String = ""
     @State private var estimatedTime: String = ""
     @State private var grubhubOrderId: String = ""
     @State private var hasConfirmedItems = false
-    
+
     @State private var selectedImage: UIImage? = nil
     @State private var showImagePicker = false
     @State private var isUploading = false
-    
+
     init(order: Order) {
-        self.order = order
+        self.initialOrder = order
+    }
+
+    private var order: Order {
+        liveOrder ?? initialOrder
     }
     
     var body: some View {
@@ -134,6 +139,7 @@ struct TaskTrackingView: View {
         }
         .navigationTitle("Track Task")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { listenToOrder() }
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage)
         }
@@ -163,7 +169,15 @@ struct TaskTrackingView: View {
         return false
     }
 
-    // --- Logic Helpers ---
+    func listenToOrder() {
+        guard let orderId = initialOrder.id else { return }
+        db.collection("orders").document(orderId)
+            .addSnapshotListener { snapshot, _ in
+                guard let snapshot = snapshot else { return }
+                self.liveOrder = try? snapshot.data(as: Order.self)
+            }
+    }
+
     private func updateFirestore(with updateData: [String: Any]) {
         db.collection("orders").document(order.id ?? "").updateData(updateData) { error in
             isUploading = false

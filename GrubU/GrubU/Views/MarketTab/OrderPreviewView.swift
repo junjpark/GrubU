@@ -1,6 +1,6 @@
 //
 //  OrderPreviewView.swift
-//  
+//
 //
 //  Created by Julie Baguio on 4/7/26.
 //
@@ -11,21 +11,21 @@ import FirebaseFirestore
 struct OrderPreviewView: View {
     let order: Order
     @EnvironmentObject var authController: AuthController
+    @EnvironmentObject var tabState: TabState
     @StateObject private var marketController = MarketController()
     @Environment(\.dismiss) var dismiss
-    
-    // Track loading state so the user doesn't double-tap
+
     @State private var isClaiming = false
-    @State private var currentUser: User?
     @State private var showConnectSetup = false
-    
+    @State private var showOrderTaken = false
+    @State private var stripeConnectId: String?
+
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 28) {
-                        
-                        // 1. THE FINANCIALS
+
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Payout")
@@ -33,31 +33,26 @@ struct OrderPreviewView: View {
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
                                     .bold()
-                                
                                 Text("+$\(order.bountyAmount, specifier: "%.2f")")
                                     .font(.largeTitle)
-                                    .fontWeight(.heavy) // Added heavy weight for impact
+                                    .fontWeight(.heavy)
                                     .foregroundColor(.green)
                             }
-                            
                             Spacer()
-                            
                             VStack(alignment: .trailing, spacing: 4) {
                                 Text("Meal Points")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
                                     .bold()
-                                
                                 Text("-$\(order.foodCost, specifier: "%.2f")")
                                     .font(.largeTitle)
-                                    .fontWeight(.heavy) // Matched size and weight
+                                    .fontWeight(.heavy)
                                     .foregroundColor(.red)
                             }
                         }
                         .padding(.top, 10)
-                        
-                        // 2. THE RECEIPT
+
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
                                 Image(systemName: "building.2.fill")
@@ -65,9 +60,7 @@ struct OrderPreviewView: View {
                                 Text("Order from: **\(order.restaurantName)**")
                                     .font(.headline)
                             }
-                            
                             Divider()
-                            
                             VStack(alignment: .leading, spacing: 12) {
                                 ForEach(order.orderDetails, id: \.self) { item in
                                     HStack(alignment: .top) {
@@ -82,14 +75,12 @@ struct OrderPreviewView: View {
                         .padding()
                         .background(Color(UIColor.secondarySystemBackground))
                         .cornerRadius(12)
-                        
-                        // 3. TERMS AND CONDITIONS
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Terms & Conditions:")
                                 .font(.caption)
                                 .bold()
                                 .foregroundColor(.secondary)
-                            
                             Text("By accepting this request, you commit to placing this order using your funds and uploading proof of delivery. Unfulfilled accepted requests negatively impact your rating and may result in account suspension.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -99,8 +90,7 @@ struct OrderPreviewView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                 }
-                
-                // 4. ACTION BUTTONS
+
                 VStack {
                     Divider()
                     HStack(spacing: 16) {
@@ -114,10 +104,8 @@ struct OrderPreviewView: View {
                                 .cornerRadius(14)
                         }
                         .disabled(isClaiming)
-                        
-                        Button(action: {
-                            handleAcceptTapped()
-                        }) {
+
+                        Button(action: { handleAcceptTapped() }) {
                             if isClaiming {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -141,8 +129,10 @@ struct OrderPreviewView: View {
             .navigationTitle("Request Details")
             .navigationBarTitleDisplayMode(.inline)
             .blur(radius: isClaiming ? 2 : 0)
-            .onAppear { fetchCurrentUser() }
-            .sheet(isPresented: $showConnectSetup) {
+            .onAppear { fetchStripeStatus() }
+            .sheet(isPresented: $showConnectSetup, onDismiss: {
+                fetchStripeStatus()
+            }) {
                 NavigationView {
                     BankLinkView()
                         .navigationTitle("Setup Required")
@@ -153,49 +143,59 @@ struct OrderPreviewView: View {
                         }
                 }
             }
+            .alert("Order Unavailable", isPresented: $showOrderTaken) {
+                Button("OK") { dismiss() }
+            } message: {
+                Text("This order has already been accepted by another fulfiller.")
+            }
         }
     }
-    
+
     func handleAcceptTapped() {
-        guard let user = currentUser else { return }
-        if user.stripeConnectAccountId == nil || user.stripeConnectAccountId?.isEmpty == true {
+        if stripeConnectId == nil || stripeConnectId?.isEmpty == true {
             showConnectSetup = true
-        } else {
+            return
+        }
+
+        isClaiming = true
+        guard let orderId = order.id else {
+            isClaiming = false
+            return
+        }
+
+        Firestore.firestore().collection("orders").document(orderId).getDocument { snapshot, _ in
+            guard let data = snapshot?.data(), data["status"] as? String == "open" else {
+                isClaiming = false
+                showOrderTaken = true
+                return
+            }
             processOrderClaim()
         }
     }
-    func fetchCurrentUser() {
+
+    func fetchStripeStatus() {
         guard let uid = authController.userSession?.uid else { return }
         Firestore.firestore().collection("users").document(uid)
-            .getDocument { snapshot, error in
-                if let error = error {
-                    print("OrderPreviewView: Failed to fetch user - \(error.localizedDescription)")
-                    return
-                }
-                do {
-                    self.currentUser = try snapshot?.data(as: User.self)
-                } catch {
-                    print("OrderPreviewView: Failed to decode user - \(error)")
+            .getDocument { snapshot, _ in
+                if let data = snapshot?.data() {
+                    self.stripeConnectId = data["stripeConnectAccountId"] as? String
                 }
             }
     }
-    
-    // logic to connect to marketController
+
     func processOrderClaim() {
         guard let currentUserId = authController.userSession?.uid,
               let orderId = order.id else {
-            print("Missing UserID or OrderID")
+            isClaiming = false
             return
         }
-        
-        isClaiming = true
-        
+
         marketController.claimOrder(orderId: orderId, fulfillerId: currentUserId) { success in
             isClaiming = false
             if success {
-                dismiss()
+                tabState.activitySegment = 1
+                tabState.selectedTab = 2
             } else {
-                // Here you could add an alert to show the user it failed
                 print("Failed to claim order in UI")
             }
         }

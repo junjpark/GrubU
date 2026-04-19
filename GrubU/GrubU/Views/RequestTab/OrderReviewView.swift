@@ -18,6 +18,7 @@ struct OrderReviewView: View {
     let bounty: Double
 
     @StateObject private var paymentController = PaymentController()
+    @EnvironmentObject var tabState: TabState
     @Environment(\.dismiss) var dismiss
 
     var grubuFee: Double {
@@ -213,7 +214,8 @@ struct OrderReviewView: View {
                     print("Order successfully posted!")
                     menuManager.bag.removeAll()
                     menuManager.currentRestaurantID = nil
-                    dismiss()
+                    tabState.activitySegment = 0
+                    tabState.selectedTab = 2
                 }
             }
         } catch {

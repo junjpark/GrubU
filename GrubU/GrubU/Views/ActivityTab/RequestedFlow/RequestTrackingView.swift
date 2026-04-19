@@ -2,26 +2,31 @@ import SwiftUI
 import FirebaseFirestore
 
 struct RequestTrackingView: View {
-    let order: Order
+    let initialOrder: Order
     @Environment(\.dismiss) var dismiss
     private var db = Firestore.firestore()
 
+    @State private var liveOrder: Order?
     @State private var isConfirming = false
-    @State private var showRating = false
     @State private var selectedRating: Int = 5
+    @State private var ratingSubmitted = false
 
     init(order: Order) {
-        self.order = order
+        self.initialOrder = order
     }
-    
+
+    private var order: Order {
+        liveOrder ?? initialOrder
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 30) {
-                                HStack(spacing: 10) {
+                HStack(spacing: 10) {
                     let statuses = ["claimed", "ordered", "delivered", "completed"]
                     let currentIndex = statuses.firstIndex(of: order.status) ?? 0
-                    
-                    ForEach(Array(statuses.enumerated()), id: \.element) { index, step in
+
+                    ForEach(Array(statuses.enumerated()), id: \.element) { index, _ in
                         Rectangle()
                             .frame(height: 8)
                             .foregroundColor(index <= currentIndex ? .orange : .gray.opacity(0.3))
@@ -50,8 +55,9 @@ struct RequestTrackingView: View {
                         Text("Order Complete")
                             .font(.title2).bold().foregroundColor(.orange)
 
-                        if order.fulfillerRating != nil {
-                            Text("You rated this fulfiller \(Int(order.fulfillerRating!))★")
+                        if order.fulfillerRating != nil || ratingSubmitted {
+                            let displayRating = order.fulfillerRating ?? Double(selectedRating)
+                            Text("You rated this fulfiller \(Int(displayRating))★")
                                 .font(.subheadline).foregroundColor(.secondary)
                         } else {
                             Text("How was your fulfiller?")
@@ -80,16 +86,15 @@ struct RequestTrackingView: View {
                             }
                         }
                     }
-                    
+
                 } else if order.status == "delivered" {
                     VStack(alignment: .leading, spacing: 15) {
                         Text("READY TO PICKUP PROOF")
                             .font(.caption).bold().foregroundColor(.secondary)
-                        
+
                         if let imageUrlString = order.proofImageUrl,
                            !imageUrlString.isEmpty,
                            let validURL = URL(string: imageUrlString) {
-                            
                             AsyncImage(url: validURL) { image in
                                 image.resizable()
                                     .aspectRatio(contentMode: .fill)
@@ -101,7 +106,6 @@ struct RequestTrackingView: View {
                             }
                             .frame(height: 250)
                             .cornerRadius(16)
-                            
                         } else {
                             ZStack {
                                 Rectangle().fill(Color.gray.opacity(0.1))
@@ -118,7 +122,7 @@ struct RequestTrackingView: View {
                             .cornerRadius(16)
                         }
                     }
-                    
+
                     Button(action: confirmReceipt) {
                         HStack {
                             if isConfirming {
@@ -137,7 +141,7 @@ struct RequestTrackingView: View {
                     }
                     .disabled(isConfirming)
                     .padding(.top, 10)
-                    
+
                 } else if order.status == "ordered" {
                     VStack(spacing: 20) {
                         Image(systemName: "takeoutbag.and.cup.and.straw.fill")
@@ -166,9 +170,9 @@ struct RequestTrackingView: View {
         }
         .navigationTitle("Track Request")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { listenToOrder() }
     }
-    
-    // --- UI Helpers ---
+
     var statusMessage: String {
         switch order.status {
         case "claimed": return "Fulfiller is preparing to order."
@@ -178,8 +182,16 @@ struct RequestTrackingView: View {
         default: return "Waiting for a fulfiller..."
         }
     }
-    
-    // --- Logic Helpers ---
+
+    func listenToOrder() {
+        guard let orderId = initialOrder.id else { return }
+        db.collection("orders").document(orderId)
+            .addSnapshotListener { snapshot, _ in
+                guard let snapshot = snapshot else { return }
+                self.liveOrder = try? snapshot.data(as: Order.self)
+            }
+    }
+
     func confirmReceipt() {
         isConfirming = true
         let paymentController = PaymentController()
@@ -204,13 +216,14 @@ struct RequestTrackingView: View {
     func submitRating() {
         guard let orderId = order.id, let fulfillerId = order.fulfillerId, !fulfillerId.isEmpty else { return }
         let rating = Double(selectedRating)
+        ratingSubmitted = true
 
         db.collection("orders").document(orderId).updateData([
             "fulfillerRating": rating
         ])
 
         let fulfillerRef = db.collection("users").document(fulfillerId)
-        fulfillerRef.getDocument { snapshot, error in
+        fulfillerRef.getDocument { snapshot, _ in
             guard let data = snapshot?.data() else { return }
 
             let currentRating = data["rating"] as? Double ?? 5.0

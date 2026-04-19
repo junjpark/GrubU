@@ -52,6 +52,14 @@ exports.sendOrderNotifications = onDocumentUpdated("orders/{orderId}", async (ev
         targetUserId = fulfillerId;
         title = "Order Confirmed!";
         body = `The requester confirmed they received the food. Great job!`;
+
+        if (fulfillerId) {
+            const bounty = newData.bountyAmount || 0;
+            await admin.firestore().collection("users").doc(fulfillerId).update({
+                completedOrders: admin.firestore.FieldValue.increment(1),
+                usdBalance: admin.firestore.FieldValue.increment(bounty),
+            });
+        }
     } else {
         return null;
     }
