@@ -1,108 +1,108 @@
 //
 //  EarnBrowseView.swift
 //
-//  Scroll of open gigs; cards link to the accept-job screen.
+//  Available-request card layout for the Earn feed (used by EarnTabView).
 //
 //  Created by Julie Baguio on 4/7/26.
 //
 
 import SwiftUI
 
-struct EarnBrowseView: View {
-    @ObservedObject var marketController: MarketController
-    @EnvironmentObject var tabState: TabState
+// MARK: - Shared earn feed formatting
 
-    var body: some View {
-        Group {
-            if marketController.openOrders.isEmpty {
-                earnBrowseEmptyState
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 14) {
-                        ForEach(marketController.openOrders) { order in
-                            NavigationLink(destination: OrderPreviewView(order: order)) {
-                                OpenJobCard(order: order)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 12)
-                    .padding(.bottom, 24)
-                }
-            }
+enum EarnAmountFormatting {
+    static func mealPointsDisplay(_ foodCost: Double) -> String {
+        let v = foodCost
+        if abs(v - round(v)) < 0.001 {
+            return String(Int(v.rounded()))
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        return String(format: "%.2f", v)
     }
 
-    private var earnBrowseEmptyState: some View {
-        VStack(spacing: 20) {
-            Spacer(minLength: 24)
-            Image(systemName: "leaf.circle")
-                .font(.system(size: 52))
-                .foregroundStyle(.secondary.opacity(0.5))
-            Text("Nothing available right now.")
-                .font(.title3)
-            Text("Check back soon or try requesting help.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-            Button {
-                tabState.selectedTab = 1
-            } label: {
-                Text("Need help instead? Switch to Request")
-                    .font(.subheadline.weight(.medium))
-            }
-            .buttonStyle(.bordered)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    static func payoutHeadline(bounty: Double) -> String {
+        String(format: "+$%.2f", bounty)
     }
 }
 
-struct OpenJobCard: View {
+/// PAYOUT / MEAL POINTS row for available-request cards.
+struct EarnPayoutMealPointsHeader: View {
+    let bountyAmount: Double
+    let foodCost: Double
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("PAYOUT")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .tracking(0.5)
+                Text(EarnAmountFormatting.payoutHeadline(bounty: bountyAmount))
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(AppTheme.accent)
+            }
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("MEAL POINTS")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .tracking(0.5)
+                Text(EarnAmountFormatting.mealPointsDisplay(foodCost))
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(AppTheme.accent)
+            }
+        }
+    }
+}
+
+// MARK: - Available request card
+
+struct EarnAvailableRequestCard: View {
     let order: Order
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(order.restaurantName)
-                .font(.headline)
-                .foregroundStyle(.primary)
+        VStack(alignment: .leading, spacing: 8) {
+            EarnPayoutMealPointsHeader(bountyAmount: order.bountyAmount, foodCost: order.foodCost)
 
-            HStack {
-                Label("$\(order.bountyAmount, specifier: "%.2f")", systemImage: "dollarsign.circle.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.green)
-                Spacer()
+            Text(orderContentsSummary)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(5)
+
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(locationLine)
+                    .foregroundStyle(.secondary)
                 if let posted = relativePosted(order.createdAt) {
+                    Text("·")
+                        .foregroundStyle(.tertiary)
                     Text(posted)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.tertiary)
                 }
             }
-
-            HStack(alignment: .top, spacing: 6) {
-                Image(systemName: "mappin.and.ellipse")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(locationLine)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            .font(.caption2)
+            .lineLimit(2)
         }
-        .padding(16)
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppTheme.surfaceBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var orderContentsSummary: String {
+        let lines = order.orderDetails
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        if lines.isEmpty {
+            return "—"
+        }
+        return lines.joined(separator: " + ")
     }
 
     private var locationLine: String {
         if let loc = order.taskLocation, !loc.isEmpty {
             return loc
         }
-        return "On campus"
+        return order.restaurantName
     }
 
     private func relativePosted(_ date: Date?) -> String? {
