@@ -26,9 +26,9 @@ enum OrderStatusPresentation {
 
     // MARK: - Browse (open job, fulfiller only)
 
-    static let earnerAvailableJobTitle = "Available Job"
+    static let earnerAvailableJobTitle = "Available Order"
     static let earnerAvailableJobDetail = """
-    This request is open on the board. Accept it when you're ready—you'll use your meal points in Grubhub to place the order as written, then upload a screenshot from Grubhub showing the order is placed or complete. The requester picks up their own food; you do not pick it up for them.
+    This request is open. Accept it when you're ready to place the order in Grubhub using your meal points.
     """
 
     // MARK: - Short labels (hub rows, list rows, tracking headline)
@@ -64,28 +64,28 @@ enum OrderStatusPresentation {
         case .requester:
             switch status {
             case "open":
-                return "Your request is live. Someone on the Earn tab can claim it when they're ready to place it in Grubhub using their meal points."
+                return "Your request is live. Someone will claim your order soon."
             case "claimed":
-                return "You're matched. Your fulfiller is about to place the Grubhub order—you'll see the next update after they mark it ordered."
+                return "You're matched! Look out for an update when your Grubber places the order."
             case "ordered":
-                return "The fulfiller placed your order in Grubhub. The restaurant is preparing it. When they send proof from Grubhub, you'll pick it up yourself and confirm here."
+                return "Your Grubber placed the order! Look out for an update when the order is ready for pickup."
             case "delivered":
-                return "Your fulfiller uploaded Grubhub proof that the order is ready or complete. Pick it up yourself using the pickup details they entered, then confirm below so they're paid."
+                return "Your order is ready for pickup! Confirm all food items are present and correct, then mark your order as complete."
             case "completed":
-                return "You're all set. Rate your fulfiller if you haven't already."
+                return "You're all set. Rate your Grubber!"
             default:
                 return "We're syncing this request. Pull to refresh or check back shortly."
             }
         case .fulfiller:
             switch status {
             case "claimed":
-                return "Place this order in Grubhub using your meal points exactly as listed. Add the pickup details the requester will use at the restaurant, confirm you placed it, then mark ordered."
+                return "Place the order in Grubhub and input pickup details."
             case "ordered":
-                return "When Grubhub shows the order is placed or complete, upload a clear screenshot from the Grubhub app. You are not picking up the food—the requester will. Proof moves this to awaiting confirmation."
+                return "Upload a screenshot of the order when it is ready for pickup!"
             case "delivered":
-                return "Proof is sent. The requester needs to confirm they picked up their food before payout finalizes."
+                return "We'll take it from here! Once your Grubee confirms pickup, your payout will be sent to your account."
             case "completed":
-                return "They confirmed pickup. This job is complete and your payout can process per your payout settings."
+                return "Your Grubee confirmed pickup! Your payout will be sent to your account shortly."
             default:
                 return "We're syncing this task. Pull to refresh or check back shortly."
             }

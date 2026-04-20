@@ -73,9 +73,11 @@ struct RequestTrackingView: View {
                             if order.fulfillerRating != nil || ratingSubmitted {
                                 Text("You rated this fulfiller \(Int(order.fulfillerRating ?? Double(selectedRating)))★")
                                     .font(.subheadline).foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
                             } else {
                                 Text("How was your fulfiller?")
                                     .font(.subheadline).foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
 
                                 HStack(spacing: 12) {
                                     ForEach(1...5, id: \.self) { star in
@@ -100,6 +102,7 @@ struct RequestTrackingView: View {
                                 }
                             }
                         }
+                        .frame(maxWidth: .infinity)
 
                     } else if order.status == "delivered" {
                         Divider()

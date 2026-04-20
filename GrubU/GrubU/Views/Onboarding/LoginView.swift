@@ -23,6 +23,13 @@ struct LoginView: View {
                 Color.orange.ignoresSafeArea()
 
                 VStack(spacing: 20) {
+                    Image("GrubULogo")
+                        .resizable()
+                        .renderingMode(.template)
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 140, height: 140)
+                        .foregroundColor(.white)
+
                     Text("GrubU")
                         .font(.system(size: 55, weight: .bold))
                         .foregroundColor(.white)

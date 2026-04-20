@@ -46,13 +46,13 @@ struct OrderPreviewView: View {
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Meal Points")
-                                    .font(.subheadline)
+                                    .font(.caption)
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
                                     .bold()
                                 Text("$\(order.foodCost, specifier: "%.2f")")
-                                    .font(.largeTitle)
-                                    .fontWeight(.heavy)
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
                                     .foregroundColor(.primary)
                             }
                             Spacer()

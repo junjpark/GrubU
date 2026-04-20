@@ -37,17 +37,17 @@ struct EarnPayoutMealPointsHeader: View {
                     .foregroundStyle(.secondary)
                     .tracking(0.5)
                 Text(EarnAmountFormatting.mealPointsDisplay(foodCost))
-                    .font(.title2.weight(.bold))
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(.primary)
             }
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 4) {
                 Text("PAYOUT")
-                    .font(.caption2.weight(.semibold))
+                    .font(.footnote.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .tracking(0.5)
                 Text(EarnAmountFormatting.payoutHeadline(bounty: bountyAmount))
-                    .font(.title2.weight(.bold))
+                    .font(.title.weight(.bold))
                     .foregroundStyle(AppTheme.accent)
             }
         }

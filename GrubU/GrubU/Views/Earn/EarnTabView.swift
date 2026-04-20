@@ -39,16 +39,9 @@ struct EarnTabView: View {
             VStack(spacing: 0) {
                 // Pinned like Request tab: blurb + active jobs strip stay put; only the feed scrolls.
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Turn extra meal points into real cash.")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, earnHorizontalPadding)
-                        .padding(.top, 14)
-                        .padding(.bottom, 18)
-
                     if !activeJobs.isEmpty {
                         activeJobsSection
+                            .padding(.top, 14)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
