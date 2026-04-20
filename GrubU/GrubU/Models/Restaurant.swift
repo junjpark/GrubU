@@ -1,6 +1,7 @@
 //
 //  Restaurant.swift
-//  GrubU
+//
+//  A dining spot + its menu items for the request flow.
 //
 //  Created by Julie Baguio on 4/7/26.
 //

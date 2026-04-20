@@ -1,6 +1,7 @@
 //
 //  MarketController.swift
-//  
+//
+//  Open orders feed + “claim this job” Firestore update.
 //
 //  Created by Julie Baguio on 4/7/26.
 //

@@ -1,6 +1,7 @@
 //
 //  OrderListRow.swift
-//  GrubU
+//
+//  One row for lists: title, status tint, optional red dot.
 //
 //  Created by user287016 on 4/7/26.
 //

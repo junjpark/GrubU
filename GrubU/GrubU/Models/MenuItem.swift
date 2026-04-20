@@ -1,6 +1,7 @@
 //
 //  MenuItem.swift
-//  GrubU
+//
+//  Single menu line (name, price, blurb).
 //
 //  Created by Julie Baguio on 4/7/26.
 //

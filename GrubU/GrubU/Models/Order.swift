@@ -1,6 +1,7 @@
 //
 //  Order.swift
-//  
+//
+//  One Firestore order — people, money, status, stripe bits.
 //
 //  Created by Julie Baguio on 4/7/26.
 //
@@ -12,6 +13,8 @@ struct Order: Identifiable, Codable {
     var requesterId: String
     var fulfillerId: String?
     var restaurantName: String
+    /// When set, shown as the task’s meeting / pickup location (campus building, dorm, etc.).
+    var taskLocation: String?
     var orderDetails: [String]
     var pickupName: String?
     var estimatedTime: String?

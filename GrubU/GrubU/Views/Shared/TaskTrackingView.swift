@@ -1,3 +1,11 @@
+//
+//  TaskTrackingView.swift
+//
+//  Fulfiller workflow: advance status, upload proof, etc.
+//
+//  Created by Julie Baguio on 4/7/26.
+//
+
 import SwiftUI
 import FirebaseFirestore
 import FirebaseStorage

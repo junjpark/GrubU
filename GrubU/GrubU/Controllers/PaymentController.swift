@@ -1,6 +1,7 @@
 //
 //  PaymentController.swift
-//  GrubU
+//
+//  Calls your cloud function + spins up the Stripe payment sheet.
 //
 //  Created by user287016 on 4/18/26.
 //

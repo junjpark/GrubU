@@ -1,6 +1,7 @@
 //
 //  User.swift
 //
+//  User profile doc shape (name, school, stripe ids, ratings).
 //
 //  Created by Julie Baguio on 4/7/26.
 //

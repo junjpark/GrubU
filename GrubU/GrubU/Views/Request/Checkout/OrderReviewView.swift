@@ -1,6 +1,7 @@
 //
 //  OrderReviewView.swift
-//  GrubU
+//
+//  Fee breakdown + Stripe pay, then writes the open order to Firestore.
 //
 //  Created by user287016 on 4/18/26.
 //
@@ -201,6 +202,7 @@ struct OrderReviewView: View {
             requesterId: Auth.auth().currentUser?.uid ?? "anonymous",
             fulfillerId: nil,
             restaurantName: restaurantName,
+            taskLocation: nil,
             orderDetails: detailStrings,
             pickupName: nil,
             estimatedTime: nil,
@@ -209,7 +211,7 @@ struct OrderReviewView: View {
             processingFee: processingFee,
             grubhubOrderId: "",
             status: "open",
-            proofImageUrl: ""
+            proofImageUrl: nil
         )
 
         let db = Firestore.firestore()
@@ -221,8 +223,7 @@ struct OrderReviewView: View {
                     print("Order successfully posted!")
                     menuManager.bag.removeAll()
                     menuManager.currentRestaurantID = nil
-                    tabState.activitySegment = 0
-                    tabState.selectedTab = 2
+                    tabState.selectedTab = 1
                 }
             }
         } catch {

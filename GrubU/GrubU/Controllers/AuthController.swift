@@ -1,6 +1,7 @@
 //
 //  AuthController.swift
-//  
+//
+//  Firebase auth listener + sign out. Session only if email’s verified.
 //
 //  Created by Julie Baguio on 4/7/26.
 //

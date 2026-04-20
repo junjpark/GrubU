@@ -1,11 +1,11 @@
 //
 //  GrubUApp.swift
-//  GrubU
+//
+//  App entry: Firebase + push, then login / intent / tabs.
 //
 //  Created by user287016 on 4/6/26.
 //
 
-// File: GrubU/GrubUApp.swift
 import SwiftUI
 import FirebaseCore
 import FirebaseMessaging
@@ -51,16 +51,30 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNot
 @main
 struct GrubUApp: App {
     @StateObject var authManager = AuthController()
+    @StateObject private var intentRefresh = IntentRefreshSignal()
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    
+
     var body: some Scene {
         WindowGroup {
-            if authManager.userSession != nil {
-                MainTabView()
-            } else {
-                LoginView()
+            Group {
+                if authManager.userSession == nil {
+                    LoginView()
+                } else if let uid = authManager.userSession?.uid {
+                    Group {
+                        if UserIntentStore.intent(for: uid) != nil {
+                            MainTabView()
+                        } else {
+                            IntentOnboardingView(uid: uid) {
+                                intentRefresh.bump()
+                            }
+                        }
+                    }
+                    .id(intentRefresh.generation)
+                } else {
+                    MainTabView()
+                }
             }
+            .environmentObject(authManager)
         }
-        .environmentObject(authManager)
     }
 }

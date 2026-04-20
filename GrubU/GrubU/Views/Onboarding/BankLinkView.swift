@@ -1,6 +1,7 @@
 //
 //  BankLinkView.swift
 //
+//  Stripe Connect onboarding in an in-app Safari sheet.
 //
 //  Created by Julie Baguio on 4/7/26.
 //

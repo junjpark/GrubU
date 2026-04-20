@@ -1,6 +1,7 @@
 //
 //  MenuManager.swift
-//  GrubU
+//
+//  Loads menus, manages the bag, totals — dining request flow.
 //
 //  Created by Julie Baguio on 4/7/26.
 //

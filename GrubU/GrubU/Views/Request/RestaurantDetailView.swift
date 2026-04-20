@@ -1,6 +1,7 @@
 //
 //  RestaurantDetailView.swift
-//  GrubU
+//
+//  One restaurant’s menu; plus buttons chuck items in the bag.
 //
 //  Created by Julie Baguio on 4/7/26.
 //

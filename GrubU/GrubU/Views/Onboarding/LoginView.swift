@@ -1,6 +1,7 @@
 //
 //  LoginView.swift
-//  GrubU
+//
+//  Email/password in; whines if .edu isn’t verified yet.
 //
 //  Created by user287016 on 4/7/26.
 //
@@ -76,13 +77,6 @@ struct LoginView: View {
                     }
                     .padding(.horizontal, 30)
                     .padding(.top, 10)
-
-                    NavigationLink(destination: SignupView()) {
-                        Text("New Here? Sign up")
-                            .foregroundColor(.white)
-                            .underline()
-                            .padding(.top, 20)
-                    }
                 }
             }
         }

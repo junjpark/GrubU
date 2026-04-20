@@ -1,6 +1,7 @@
 //
 //  OrderPreviewView.swift
 //
+//  One open order: details + accept job (Stripe Connect gate).
 //
 //  Created by Julie Baguio on 4/7/26.
 //
@@ -54,11 +55,18 @@ struct OrderPreviewView: View {
                         .padding(.top, 10)
 
                         VStack(alignment: .leading, spacing: 16) {
-                            HStack {
-                                Image(systemName: "building.2.fill")
-                                    .foregroundColor(.gray)
-                                Text("Order from: **\(order.restaurantName)**")
-                                    .font(.headline)
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Image(systemName: "checklist")
+                                        .foregroundColor(.gray)
+                                    Text(order.restaurantName)
+                                        .font(.headline)
+                                }
+                                if let loc = order.taskLocation, !loc.isEmpty {
+                                    Label(loc, systemImage: "mappin.and.ellipse")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                             Divider()
                             VStack(alignment: .leading, spacing: 12) {
@@ -110,7 +118,7 @@ struct OrderPreviewView: View {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
-                                Text("Accept Request")
+                                Text("Accept Job")
                                     .font(.headline)
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -126,7 +134,7 @@ struct OrderPreviewView: View {
                 }
                 .background(Color(UIColor.systemBackground))
             }
-            .navigationTitle("Request Details")
+            .navigationTitle("Job details")
             .navigationBarTitleDisplayMode(.inline)
             .blur(radius: isClaiming ? 2 : 0)
             .onAppear { fetchStripeStatus() }
@@ -193,8 +201,7 @@ struct OrderPreviewView: View {
         marketController.claimOrder(orderId: orderId, fulfillerId: currentUserId) { success in
             isClaiming = false
             if success {
-                tabState.activitySegment = 1
-                tabState.selectedTab = 2
+                tabState.selectedTab = 0
             } else {
                 print("Failed to claim order in UI")
             }

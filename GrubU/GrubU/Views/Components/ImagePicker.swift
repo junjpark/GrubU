@@ -1,6 +1,7 @@
 //
 //  ImagePicker.swift
-//  GrubU
+//
+//  UIKit image picker bridged for SwiftUI (proof photos).
 //
 //  Created by user287016 on 4/7/26.
 //

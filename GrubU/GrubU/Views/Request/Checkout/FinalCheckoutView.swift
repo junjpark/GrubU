@@ -1,6 +1,7 @@
 //
 //  FinalCheckoutView.swift
-//  GrubU
+//
+//  Bag recap + link off to pay / post the order.
 //
 //  Created by Julie Baguio on 4/7/26.
 //

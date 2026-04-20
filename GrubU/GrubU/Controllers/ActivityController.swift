@@ -1,6 +1,8 @@
 //
 //  ActivityController.swift
 //
+//  Live Firestore lists for your requests & fulfiller jobs + unread dots.
+//
 //  Created by Julie Baguio on 4/7/26.
 //
 import Foundation
