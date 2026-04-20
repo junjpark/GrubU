@@ -25,6 +25,11 @@ struct OrderListRow: View {
                 Text(order.status.capitalized)
                     .font(.subheadline)
                     .foregroundColor(statusColor)
+                if let timestampText = timestampText {
+                    Text(timestampText)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             Spacer()
             Text("$\(order.bountyAmount, specifier: "%.2f")")
@@ -42,4 +47,19 @@ struct OrderListRow: View {
         default: return .orange
         }
     }
+
+    private var timestampText: String? {
+        guard let date = order.createdAt else { return nil }
+        return Self.formatter.string(from: date)
+    }
+
+    /// Shared formatter so we don't allocate one per row render.
+    /// Examples: "Today at 3:45 PM", "Yesterday at 10:02 AM", "Apr 17 at 9:13 PM".
+    private static let formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.doesRelativeDateFormatting = true
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
 }
