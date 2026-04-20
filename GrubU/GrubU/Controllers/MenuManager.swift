@@ -10,6 +10,28 @@ import SwiftUI
 import Combine
 import FirebaseFirestore
 
+struct BagDisplayLine: Identifiable, Hashable {
+    let id: String
+    let item: MenuItem
+    let quantity: Int
+
+    var lineTotal: Double { Double(quantity) * item.price }
+
+    static func lines(from items: [MenuItem]) -> [BagDisplayLine] {
+        var lines: [BagDisplayLine] = []
+        for item in items {
+            if let i = lines.firstIndex(where: { $0.item.name == item.name && $0.item.price == item.price }) {
+                let prev = lines[i]
+                lines[i] = BagDisplayLine(id: prev.id, item: prev.item, quantity: prev.quantity + 1)
+            } else {
+                let id = "\(item.name)#\(item.price)"
+                lines.append(BagDisplayLine(id: id, item: item, quantity: 1))
+            }
+        }
+        return lines
+    }
+}
+
 class MenuManager: ObservableObject {
     @Published var restaurants: [Restaurant] = []
     @Published var bag: [MenuItem] = [] // This is your "Cart"
@@ -71,5 +93,16 @@ class MenuManager: ObservableObject {
     
     var totalCost: Double {
         bag.reduce(0) { $0 + $1.price }
+    }
+
+    var bagDisplayLines: [BagDisplayLine] {
+        BagDisplayLine.lines(from: bag)
+    }
+
+    func removeBagDisplayLine(id: String) {
+        bag.removeAll { "\($0.name)#\($0.price)" == id }
+        if bag.isEmpty {
+            currentRestaurantID = nil
+        }
     }
 }

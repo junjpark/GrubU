@@ -94,7 +94,12 @@ class ActivityController: ObservableObject {
 
         var unread = unreadRequestOrderIds
         for (id, status) in newMap {
-            if let old = lastRequestStatusById[id], old != status, id != activeDetailRequestOrderId {
+            guard id != activeDetailRequestOrderId else { continue }
+            if let old = lastRequestStatusById[id] {
+                if old != status {
+                    unread.insert(id)
+                }
+            } else {
                 unread.insert(id)
             }
         }
@@ -118,7 +123,12 @@ class ActivityController: ObservableObject {
 
         var unread = unreadTaskOrderIds
         for (id, status) in newMap {
-            if let old = lastTaskStatusById[id], old != status, id != activeDetailTaskOrderId {
+            guard id != activeDetailTaskOrderId else { continue }
+            if let old = lastTaskStatusById[id] {
+                if old != status {
+                    unread.insert(id)
+                }
+            } else {
                 unread.insert(id)
             }
         }

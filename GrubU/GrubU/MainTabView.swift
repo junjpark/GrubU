@@ -5,8 +5,6 @@
 //  Created by user287016 on 4/7/26.
 //
 import SwiftUI
-import FirebaseAuth
-import Combine
 
 class TabState: ObservableObject {
     @Published var selectedTab = 0
@@ -17,10 +15,6 @@ struct MainTabView: View {
     @StateObject private var tabState = TabState()
     @EnvironmentObject var authController: AuthController
     @StateObject private var activityController = ActivityController()
-
-    private var activityTabDot: Bool {
-        activityController.hasAnyUnreadActivity
-    }
 
     var body: some View {
         TabView(selection: $tabState.selectedTab) {
@@ -39,16 +33,7 @@ struct MainTabView: View {
 
             ActivityMainView(activityController: activityController, tabState: tabState)
                 .tabItem {
-                    ZStack(alignment: .topTrailing) {
-                        Label("Activity", systemImage: "arrow.up.arrow.down.circle.fill")
-                        if activityTabDot {
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 8, height: 8)
-                                .offset(x: 12, y: -6)
-                                .accessibilityLabel("Unread activity")
-                        }
-                    }
+                    Label("Activity", systemImage: "arrow.up.arrow.down.circle.fill")
                 }
                 .tag(2)
 

@@ -39,6 +39,10 @@ struct OrderReviewView: View {
         bounty + processingFee
     }
 
+    private var displayLines: [BagDisplayLine] {
+        BagDisplayLine.lines(from: items)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -52,11 +56,11 @@ struct OrderReviewView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("YOUR ORDER")
                         .font(.caption).bold().foregroundColor(.secondary)
-                    ForEach(items, id: \.name) { item in
+                    ForEach(displayLines) { line in
                         HStack {
-                            Text(item.name)
+                            Text(line.quantity > 1 ? "\(line.quantity)x \(line.item.name)" : line.item.name)
                             Spacer()
-                            Text("$\(item.price, specifier: "%.2f")")
+                            Text("$\(line.lineTotal, specifier: "%.2f")")
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -190,11 +194,14 @@ struct OrderReviewView: View {
     }
 
     func postOrderToFirebase() {
+        let detailStrings = displayLines.map { line in
+            line.quantity > 1 ? "\(line.quantity)x \(line.item.name)" : line.item.name
+        }
         let newOrder = Order(
             requesterId: Auth.auth().currentUser?.uid ?? "anonymous",
-            fulfillerId: "",
+            fulfillerId: nil,
             restaurantName: restaurantName,
-            orderDetails: items.map { $0.name },
+            orderDetails: detailStrings,
             pickupName: nil,
             estimatedTime: nil,
             foodCost: foodCost,

@@ -16,15 +16,18 @@ struct FinalCheckoutView: View {
     var body: some View {
         Form {
             Section(header: Text("Items")) {
-                ForEach(menuManager.bag, id: \.self) { item in
+                ForEach(menuManager.bagDisplayLines) { line in
                     HStack {
-                        Text(item.name)
+                        Text(line.quantity > 1 ? "\(line.quantity)x \(line.item.name)" : line.item.name)
                         Spacer()
-                        Text("$\(item.price, specifier: "%.2f")")
+                        Text("$\(line.lineTotal, specifier: "%.2f")")
                     }
                 }
-                .onDelete { offsets in
-                    menuManager.removeFromBag(at: offsets)
+                .onDelete { indexSet in
+                    for index in indexSet {
+                        let id = menuManager.bagDisplayLines[index].id
+                        menuManager.removeBagDisplayLine(id: id)
+                    }
                 }
             }
 

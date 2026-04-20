@@ -103,6 +103,16 @@ struct ProfileView: View {
         return String(format: "%.1f ★", r)
     }
 
+    private static func intFromFirestore(_ value: Any?) -> Int? {
+        switch value {
+        case let i as Int: return i
+        case let i as Int64: return Int(i)
+        case let i as UInt64: return Int(i)
+        case let d as Double where d.rounded() == d: return Int(d)
+        default: return nil
+        }
+    }
+
     func fetchUserData() {
         guard let uid = authController.userSession?.uid else {
             print("ProfileView: No user session found")
@@ -124,7 +134,15 @@ struct ProfileView: View {
             }
 
             do {
-                let user = try document.data(as: User.self)
+                var user = try document.data(as: User.self)
+                if let data = document.data() {
+                    if let co = Self.intFromFirestore(data["completedOrders"]) {
+                        user.completedOrders = co
+                    }
+                    if let tr = Self.intFromFirestore(data["totalRatingsReceived"]) {
+                        user.totalRatingsReceived = tr
+                    }
+                }
                 DispatchQueue.main.async {
                     self.currentUser = user
                 }
