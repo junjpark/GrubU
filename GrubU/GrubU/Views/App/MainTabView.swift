@@ -18,6 +18,8 @@ struct MainTabView: View {
     @EnvironmentObject var authController: AuthController
     @StateObject private var tabState = TabState()
     @StateObject private var activityController = ActivityController()
+    /// Lives at tab root so nested `NavigationStack` + checkout still resolve `OrderReviewView`’s `@EnvironmentObject`.
+    @StateObject private var requestNavigation = RequestNavigationCoordinator()
     @State private var appliedIntentDefault = false
 
     var body: some View {
@@ -40,6 +42,7 @@ struct MainTabView: View {
         .accentColor(.orange)
         .environmentObject(tabState)
         .environmentObject(activityController)
+        .environmentObject(requestNavigation)
         .onAppear {
             if let uid = authController.userSession?.uid {
                 activityController.fetchActivity(for: uid)

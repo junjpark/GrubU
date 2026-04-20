@@ -15,53 +15,110 @@ struct FinalCheckoutView: View {
     }
 
     var body: some View {
-        Form {
-            Section(header: Text("Items")) {
-                ForEach(menuManager.bagDisplayLines) { line in
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                ProfileSectionHeader(title: "Items in bag", systemImage: "bag.fill")
+
+                VStack(spacing: 0) {
+                    ForEach(Array(menuManager.bagDisplayLines.enumerated()), id: \.1.id) { index, line in
+                        HStack(alignment: .center, spacing: 0) {
+                            bagItemRow(line: line)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Button(role: .destructive) {
+                                menuManager.removeBagDisplayLine(id: line.id)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.body.weight(.medium))
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.trailing, 14)
+                                    .accessibilityLabel("Remove from bag")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        if index < menuManager.bagDisplayLines.count - 1 {
+                            Divider()
+                                .background(Color(.separator))
+                        }
+                    }
+                }
+                .profileModalCardStyle()
+
+                ProfileSectionHeader(title: "Cost breakdown", systemImage: "chart.bar.fill")
+
+                VStack(spacing: 0) {
+                    checkoutSummaryRow(label: "Meal points cost", value: String(format: "$%.2f", menuManager.totalCost))
+                    Divider()
+                        .background(Color(.separator))
+                    checkoutSummaryRow(label: "Bounty (50%)", value: String(format: "$%.2f", bounty))
+                }
+                .profileModalCardStyle()
+
+                NavigationLink {
+                    OrderReviewView(
+                        menuManager: menuManager,
+                        restaurantName: menuManager.restaurants.first(where: { $0.id == menuManager.currentRestaurantID })?.name ?? "Unknown",
+                        items: menuManager.bag,
+                        foodCost: menuManager.totalCost,
+                        bounty: bounty
+                    )
+                } label: {
                     HStack {
-                        Text(line.quantity > 1 ? "\(line.quantity)x \(line.item.name)" : line.item.name)
                         Spacer()
-                        Text("$\(line.lineTotal, specifier: "%.2f")")
+                        Text("Review order")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(.white)
+                        Spacer()
                     }
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 16)
+                    .background(AppTheme.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .contentShape(Rectangle())
                 }
-                .onDelete { indexSet in
-                    for index in indexSet {
-                        let id = menuManager.bagDisplayLines[index].id
-                        menuManager.removeBagDisplayLine(id: id)
-                    }
-                }
-            }
+                .buttonStyle(.plain)
+                .padding(.top, 20)
 
-            Section(header: Text("Cost Breakdown")) {
-                HStack {
-                    Text("Meal Points Cost")
-                    Spacer()
-                    Text("$\(menuManager.totalCost, specifier: "%.2f")")
-                        .foregroundColor(.secondary)
-                }
-                HStack {
-                    Text("Bounty (50%)")
-                    Spacer()
-                    Text("$\(bounty, specifier: "%.2f")")
-                }
+                Spacer(minLength: 24)
             }
-
-            Section {
-                NavigationLink(destination: OrderReviewView(
-                    menuManager: menuManager,
-                    restaurantName: menuManager.restaurants.first(where: { $0.id == menuManager.currentRestaurantID })?.name ?? "Unknown",
-                    items: menuManager.bag,
-                    foodCost: menuManager.totalCost,
-                    bounty: bounty
-                )) {
-                    Text("Review Order")
-                        .frame(maxWidth: .infinity)
-                        .foregroundColor(.orange)
-                        .bold()
-                }
-            }
+            .padding(.horizontal, ProfileLayout.horizontalPadding)
+            .padding(.top, 18)
+            .padding(.bottom, AppTheme.tabBarBottomClearance)
         }
-        .padding(.bottom, AppTheme.tabBarBottomClearance)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.pageBackground)
         .navigationTitle("Checkout")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func bagItemRow(line: BagDisplayLine) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(line.quantity > 1 ? "\(line.quantity)× \(line.item.name)" : line.item.name)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 16)
+            Text(String(format: "$%.2f", line.lineTotal))
+                .font(.body.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+                .monospacedDigit()
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
+    }
+
+    private func checkoutSummaryRow(label: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 16)
+            Text(value)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+                .monospacedDigit()
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
     }
 }

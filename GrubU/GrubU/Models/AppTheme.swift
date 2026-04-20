@@ -28,3 +28,27 @@ extension View {
             )
     }
 }
+
+/// Uppercase orange section chrome matching `ProfileView.sectionTitle`.
+struct ProfileSectionHeader: View {
+    let title: String
+    var systemImage: String?
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.accent)
+            }
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+                .textCase(.uppercase)
+                .tracking(0.6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 4)
+        .padding(.bottom, 10)
+    }
+}

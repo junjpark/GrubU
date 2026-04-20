@@ -16,7 +16,7 @@ struct RequestHubView: View {
     @EnvironmentObject var authController: AuthController
 
     @StateObject private var menuManager = MenuManager()
-    @StateObject private var requestNavigation = RequestNavigationCoordinator()
+    @EnvironmentObject private var requestNavigation: RequestNavigationCoordinator
 
     private var activeRequests: [Order] {
         activityController.requestedOrders.filter { OrderStatusGroups.isActiveRequester($0.status) }
@@ -71,7 +71,6 @@ struct RequestHubView: View {
             .background(AppTheme.pageBackground)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .environmentObject(requestNavigation)
             .navigationDestination(item: $requestNavigation.orderToTrackAfterPost) { order in
                 RequestTrackingView(order: order)
             }
