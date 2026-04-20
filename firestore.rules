@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow anyone to read the restaurant menus
+    match /menus/{menuId} {
+      allow read: if true;
+    }
+
+    match /orders/{orderId} {
+      // TEMPORARY: Allow anyone to create an order without a login check
+      allow create: if true;
+
+      // Allow reading so you can see your orders in the app
+      allow read: if true;
+
+      // Keep these as they are for when you eventually add login
+      allow update, delete: if request.auth != null;
+    }
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Signed-in users can file a support ticket tied to an order. The client
+    // can only create tickets as themselves, and can only read their own.
+    // Cloud Functions (onIssueReportCreated) handle the order freeze and any
+    // future mutations with admin privileges.
+    match /issueReports/{reportId} {
+      allow create: if request.auth != null
+                    && request.resource.data.reporterUid == request.auth.uid
+                    && request.resource.data.orderId is string
+                    && request.resource.data.description is string
+                    && request.resource.data.status == 'open';
+
+      allow read: if request.auth != null
+                  && resource.data.reporterUid == request.auth.uid;
+
+      allow update, delete: if false;
+    }
+  }
+}
