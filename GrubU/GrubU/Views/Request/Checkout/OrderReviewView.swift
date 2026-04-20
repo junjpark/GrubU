@@ -94,7 +94,7 @@ struct OrderReviewView: View {
                 if let error = paymentController.errorMessage {
                     Text(error)
                         .font(.caption)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(AppTheme.accent)
                         .padding(.top, 12)
                 }
 

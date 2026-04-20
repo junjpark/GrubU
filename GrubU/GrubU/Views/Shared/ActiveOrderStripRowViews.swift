@@ -65,7 +65,7 @@ struct CompactFulfillerActiveOrderRow: View {
                     HStack(spacing: 6) {
                         if showsUnreadDot {
                             Circle()
-                                .fill(Color.red)
+                                .fill(AppTheme.accent)
                                 .frame(width: 6, height: 6)
                         }
                         Image(systemName: "chevron.right")
@@ -120,7 +120,7 @@ struct CompactRequesterActiveOrderRow: View {
                     HStack(spacing: 6) {
                         if showsUnreadDot {
                             Circle()
-                                .fill(Color.red)
+                                .fill(AppTheme.accent)
                                 .frame(width: 6, height: 6)
                         }
                         Image(systemName: "chevron.right")

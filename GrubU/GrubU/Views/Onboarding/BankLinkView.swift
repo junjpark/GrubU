@@ -43,7 +43,7 @@ struct BankLinkView: View {
 
                 if let error = paymentController.errorMessage {
                     Text(error)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppTheme.accent)
                         .font(.caption)
                         .multilineTextAlignment(.center)
                 }

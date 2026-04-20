@@ -17,7 +17,7 @@ struct OrderListRow: View {
         HStack(spacing: 10) {
             if showsUnreadDot {
                 Circle()
-                    .fill(Color.red)
+                    .fill(AppTheme.accent)
                     .frame(width: 8, height: 8)
                     .accessibilityLabel("Unread status update")
             }

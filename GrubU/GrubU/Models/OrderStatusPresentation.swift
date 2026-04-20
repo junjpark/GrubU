@@ -100,18 +100,18 @@ enum OrderStatusPresentation {
             switch status {
             case "open": return AppTheme.accent
             case "claimed": return .blue
-            case "ordered": return Color(red: 0.78, green: 0.58, blue: 0.04)
+            case "ordered": return AppTheme.accent
             case "delivered": return .green
             case "completed": return .purple
-            default: return .orange
+            default: return AppTheme.accent
             }
         case .fulfiller:
             switch status {
-            case "claimed": return .red
-            case "ordered": return Color(red: 0.78, green: 0.58, blue: 0.04)
+            case "claimed": return AppTheme.accent
+            case "ordered": return AppTheme.accent
             case "delivered": return Color(red: 0.2, green: 0.55, blue: 0.85)
             case "completed": return .purple
-            default: return .orange
+            default: return AppTheme.accent
             }
         }
     }
