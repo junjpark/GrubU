@@ -85,14 +85,14 @@ struct EarnAvailableRequestCard: View {
             HStack {
                 Spacer(minLength: 0)
                 HStack(spacing: 5) {
-                    Text("Accept Job")
+                    Text("Accept Order")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.accent)
                     Image(systemName: "arrow.right")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.accent)
                 }
-                .accessibilityLabel("Accept job, view details")
+                .accessibilityLabel("Accept order, view details")
             }
             .padding(.top, 4)
         }

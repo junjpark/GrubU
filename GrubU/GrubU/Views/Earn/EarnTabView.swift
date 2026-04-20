@@ -100,7 +100,7 @@ struct EarnTabView: View {
             .background(AppTheme.pageBackground)
 
             VStack(alignment: .leading, spacing: 0) {
-                earnSectionTitle("Available Requests")
+                earnSectionTitle("Available Orders")
                     .padding(.horizontal, earnHorizontalPadding)
                     .padding(.top, activeJobs.isEmpty ? 0 : 10)
 
@@ -161,11 +161,11 @@ struct EarnTabView: View {
                 .foregroundStyle(AppTheme.accent)
 
             VStack(spacing: 10) {
-                Text("Earning is locked")
+                Text("Earning is Locked")
                     .font(.title2.weight(.bold))
                     .multilineTextAlignment(.center)
 
-                Text("Connect a bank account through Stripe to browse available jobs and get paid for fulfilling them.")
+                Text("Connect your bank account through Stripe to browse available orders and get paid.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -189,7 +189,7 @@ struct EarnTabView: View {
             Button {
                 tabState.selectedTab = 1
             } label: {
-                Text("Not earning yet? Switch to Request")
+                Text("Hungry? Create an Order Request")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.accent)
             }
@@ -231,7 +231,7 @@ struct EarnTabView: View {
     private var activeJobsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text("My Active Jobs (\(activeJobs.count))")
+                Text("My Active Orders (\(activeJobs.count))")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white)
                     .textCase(.uppercase)
@@ -281,7 +281,7 @@ struct EarnTabView: View {
             Button {
                 tabState.selectedTab = 1
             } label: {
-                Text("Switch to Request")
+                Text("Create an Order Request")
                     .font(.subheadline.weight(.semibold))
             }
             .buttonStyle(.bordered)
