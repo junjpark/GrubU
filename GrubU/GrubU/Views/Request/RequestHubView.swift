@@ -26,32 +26,13 @@ struct RequestHubView: View {
         Array(activeRequests.prefix(1))
     }
 
-    private var completedRequests: [Order] {
-        activityController.requestedOrders.filter { $0.status == "completed" }
-    }
-
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Out of meal points? Set your price and get a meal.")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, requestHorizontalPadding)
-                        .padding(.top, 14)
-                        .padding(.bottom, 18)
-
-                    if !activeRequests.isEmpty {
-                        activeRequestsSection
-                    } else {
-                        requestActiveEmptyCallout
-                            .padding(.horizontal, requestHorizontalPadding)
-                            .padding(.bottom, 12)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(AppTheme.pageBackground)
+                // Pinned: orange active-requests strip always shows (mirrors Earn tab’s pinned strip).
+                activeRequestsSection
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(AppTheme.accent)
 
                 VStack(alignment: .leading, spacing: 0) {
                     requestMealSectionHeader
@@ -101,7 +82,7 @@ struct RequestHubView: View {
         .padding(.bottom, 10)
     }
 
-    // MARK: - Active requests (matches Earn “My Active Jobs” strip)
+    // MARK: - Active requests (matches Earn “My Active Orders” strip)
 
     private var activeRequestsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -113,38 +94,41 @@ struct RequestHubView: View {
                     .tracking(0.6)
                     .lineLimit(1)
                 Spacer(minLength: 8)
-                NavigationLink {
-                    RequestAllActiveRequestsView()
-                } label: {
-                    Text("View All")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
+                if !activeRequests.isEmpty {
+                    NavigationLink {
+                        RequestAllActiveRequestsView()
+                    } label: {
+                        Text("View All")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, requestHorizontalPadding)
             .padding(.top, 12)
 
-            VStack(spacing: 8) {
-                ForEach(previewRequests) { order in
-                    compactActiveRequestRow(order)
+            if activeRequests.isEmpty {
+                Text("Out of meal points? Set your price and request a meal.")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, requestHorizontalPadding)
+                    .padding(.bottom, 16)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(previewRequests) { order in
+                        compactActiveRequestRow(order)
+                    }
                 }
+                .padding(.horizontal, requestHorizontalPadding)
+                .padding(.bottom, 16)
             }
-            .padding(.horizontal, requestHorizontalPadding)
-            .padding(.bottom, 16)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppTheme.accent)
-    }
-
-    private var requestActiveEmptyCallout: some View {
-        Text(
-            completedRequests.isEmpty
-                ? "None yet — pick a restaurant below to post your first order."
-                : "No active requests. Completed orders are in Profile › Archive."
-        )
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
     }
 
     @ViewBuilder

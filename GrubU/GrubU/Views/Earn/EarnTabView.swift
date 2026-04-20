@@ -1,7 +1,8 @@
 //
 //  EarnTabView.swift
 //
-//  Earn tab: optional active jobs strip, then available requests feed.
+//  Earn tab: Stripe-Connect gated. When connected, shows pinned active-orders strip
+//  plus the available-requests feed.
 //
 //  Created by Julie Baguio on 4/7/26.
 //
@@ -13,7 +14,7 @@ import FirebaseFirestore
 private let earnHorizontalPadding: CGFloat = 20
 
 /// Earn tab is gated behind Stripe Connect onboarding so unregistered accounts
-/// can't browse jobs or bounty values they aren't allowed to accept.
+/// can't browse orders or bounty values they aren't allowed to accept.
 private enum EarnStripeGateState: Equatable {
     case loading
     case needsConnect
@@ -31,12 +32,12 @@ struct EarnTabView: View {
     @State private var gateState: EarnStripeGateState = .loading
     @State private var showConnectSetup = false
 
-    private var activeJobs: [Order] {
+    private var activeOrders: [Order] {
         activityController.fulfillingTasks.filter { OrderStatusGroups.isActiveFulfiller($0.status) }
     }
 
-    private var previewJobs: [Order] {
-        Array(activeJobs.prefix(1))
+    private var previewOrders: [Order] {
+        Array(activeOrders.prefix(1))
     }
 
     private var postClaimOrderBinding: Binding<Order?> {
@@ -88,21 +89,19 @@ struct EarnTabView: View {
         .environment(\.earnPostClaimNavigation, earnPostClaimNavigation)
     }
 
+    // MARK: - Connected feed (morewrap UI)
+
     private var connectedContent: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 0) {
-                if !activeJobs.isEmpty {
-                    activeJobsSection
-                        .padding(.top, 14)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppTheme.pageBackground)
+            // Pinned: orange active-orders strip always shows (mirrors Request tab's pinned strip).
+            activeOrdersSection
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppTheme.accent)
 
             VStack(alignment: .leading, spacing: 0) {
-                earnSectionTitle("Available Orders")
+                earnSectionTitle("Available Requests")
                     .padding(.horizontal, earnHorizontalPadding)
-                    .padding(.top, activeJobs.isEmpty ? 0 : 10)
+                    .padding(.top, 10)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -141,7 +140,7 @@ struct EarnTabView: View {
         }
     }
 
-    // MARK: - Gating
+    // MARK: - Gating views
 
     private var earnLoadingView: some View {
         VStack {
@@ -226,40 +225,53 @@ struct EarnTabView: View {
             }
     }
 
-    // MARK: - Active jobs (compact)
+    // MARK: - Active orders (compact, always visible)
 
-    private var activeJobsSection: some View {
+    private var activeOrdersSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text("My Active Orders (\(activeJobs.count))")
+                Text("My Active Orders (\(activeOrders.count))")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white)
                     .textCase(.uppercase)
                     .tracking(0.6)
                     .lineLimit(1)
                 Spacer(minLength: 8)
-                NavigationLink {
-                    EarnAllActiveJobsView()
-                } label: {
-                    Text("View All")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
+                if !activeOrders.isEmpty {
+                    NavigationLink {
+                        EarnAllActiveOrdersView()
+                    } label: {
+                        Text("View All")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, earnHorizontalPadding)
             .padding(.top, 12)
 
-            VStack(spacing: 8) {
-                ForEach(previewJobs) { order in
-                    CompactFulfillerActiveOrderRow(
-                        order: order,
-                        showsUnreadDot: activityController.unreadTaskOrderIds.contains(order.id ?? "")
-                    )
+            if activeOrders.isEmpty {
+                Text("Got extra meal points? Turn them into real cash by fulfilling requests.")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, earnHorizontalPadding)
+                    .padding(.bottom, 16)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(previewOrders) { order in
+                        CompactFulfillerActiveOrderRow(
+                            order: order,
+                            showsUnreadDot: activityController.unreadTaskOrderIds.contains(order.id ?? "")
+                        )
+                    }
                 }
+                .padding(.horizontal, earnHorizontalPadding)
+                .padding(.bottom, 16)
             }
-            .padding(.horizontal, earnHorizontalPadding)
-            .padding(.bottom, 16)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppTheme.accent)

@@ -28,6 +28,12 @@ struct TaskTrackingView: View {
     @State private var showImagePicker = false
     @State private var isUploading = false
 
+    @StateObject private var marketController = MarketController()
+    @State private var showReleaseConfirmation = false
+    @State private var isReleasing = false
+    @State private var releaseErrorMessage: String?
+    @State private var showReleasedSuccessAlert = false
+
     init(order: Order) {
         self.initialOrder = order
     }
@@ -159,6 +165,48 @@ struct TaskTrackingView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
                         .disabled(!isFormValid || isUploading)
+
+                        if order.status == "claimed" {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Button(role: .destructive) {
+                                    releaseErrorMessage = nil
+                                    showReleaseConfirmation = true
+                                } label: {
+                                    HStack {
+                                        if isReleasing {
+                                            ProgressView()
+                                                .progressViewStyle(CircularProgressViewStyle(tint: .red))
+                                                .padding(.trailing, 5)
+                                        }
+                                        Text(isReleasing ? "Releasing…" : "Cancel order")
+                                            .font(.body.weight(.semibold))
+                                            .foregroundStyle(.red)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .padding(.horizontal, 16)
+                                    .background(AppTheme.surfaceBackground)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .stroke(Color.red.opacity(0.35), lineWidth: 1)
+                                    )
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isReleasing || isUploading)
+
+                                Text("You can cancel until you place the order on Grubhub.")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+
+                                if let releaseErrorMessage {
+                                    Text(releaseErrorMessage)
+                                        .font(.caption)
+                                        .foregroundStyle(.red)
+                                }
+                            }
+                        }
                     } else if order.status == "completed" {
                         Divider()
                             .background(Color(.separator).opacity(0.55))
@@ -202,6 +250,45 @@ struct TaskTrackingView: View {
         }
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage)
+        }
+        .alert(
+            "Cancel this order?",
+            isPresented: $showReleaseConfirmation
+        ) {
+            Button("Keep order", role: .cancel) {}
+            Button("Cancel order", role: .destructive) {
+                releaseClaimedOrder()
+            }
+        } message: {
+            Text("The request will be returned to the marketplace for someone else to accept.")
+        }
+        .alert(
+            "Order cancelled",
+            isPresented: $showReleasedSuccessAlert
+        ) {
+            Button("OK", role: .cancel) {
+                dismiss()
+            }
+        } message: {
+            Text("This order has been returned to the marketplace.")
+        }
+    }
+
+    private func releaseClaimedOrder() {
+        guard let orderId = order.id, !orderId.isEmpty else { return }
+        guard let fulfillerId = order.fulfillerId, !fulfillerId.isEmpty else { return }
+        isReleasing = true
+        releaseErrorMessage = nil
+        marketController.releaseClaimedOrder(orderId: orderId, fulfillerId: fulfillerId) { success in
+            DispatchQueue.main.async {
+                isReleasing = false
+                if success {
+                    earnPostClaimNavigation?.clearPostClaimIfMatches(orderId: orderId)
+                    showReleasedSuccessAlert = true
+                } else {
+                    releaseErrorMessage = "Couldn’t release this order — its status may have changed."
+                }
+            }
         }
     }
     

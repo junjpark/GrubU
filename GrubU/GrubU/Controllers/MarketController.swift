@@ -1,7 +1,7 @@
 //
 //  MarketController.swift
 //
-//  Open orders feed + “claim this job” Firestore update.
+//  Open orders feed + “claim this order” Firestore update.
 //
 //  Created by Julie Baguio on 4/7/26.
 //
@@ -61,6 +61,79 @@ class MarketController: ObservableObject {
                 completion(false)
             } else {
                 print("Successfully claimed order!")
+                completion(true)
+            }
+        }
+    }
+
+    /// Requester-side cancel. Only safe while the order is still `open` (no fulfiller yet).
+    /// Uses a Firestore transaction so we don't race with a fulfiller claiming at the same time.
+    /// TODO: trigger a Stripe refund via a cloud function for production-grade handling.
+    func cancelOpenRequest(orderId: String, completion: @escaping (Bool) -> Void) {
+        let orderRef = db.collection("orders").document(orderId)
+        db.runTransaction({ transaction, errorPointer -> Any? in
+            let snapshot: DocumentSnapshot
+            do {
+                snapshot = try transaction.getDocument(orderRef)
+            } catch let fetchError as NSError {
+                errorPointer?.pointee = fetchError
+                return nil
+            }
+            guard let status = snapshot.data()?["status"] as? String, status == "open" else {
+                let stateError = NSError(
+                    domain: "MarketController",
+                    code: 409,
+                    userInfo: [NSLocalizedDescriptionKey: "Request is no longer open and cannot be canceled."]
+                )
+                errorPointer?.pointee = stateError
+                return nil
+            }
+            transaction.deleteDocument(orderRef)
+            return nil
+        }) { _, error in
+            if let error = error {
+                print("Error canceling request: \(error.localizedDescription)")
+                completion(false)
+            } else {
+                completion(true)
+            }
+        }
+    }
+
+    /// Fulfiller-side release. Only safe while still `claimed` (haven't placed the Grubhub order).
+    /// Re-opens the request for someone else to accept.
+    func releaseClaimedOrder(orderId: String, fulfillerId: String, completion: @escaping (Bool) -> Void) {
+        let orderRef = db.collection("orders").document(orderId)
+        db.runTransaction({ transaction, errorPointer -> Any? in
+            let snapshot: DocumentSnapshot
+            do {
+                snapshot = try transaction.getDocument(orderRef)
+            } catch let fetchError as NSError {
+                errorPointer?.pointee = fetchError
+                return nil
+            }
+            let data = snapshot.data() ?? [:]
+            let status = data["status"] as? String ?? ""
+            let currentFulfiller = data["fulfillerId"] as? String ?? ""
+            guard status == "claimed", currentFulfiller == fulfillerId else {
+                let stateError = NSError(
+                    domain: "MarketController",
+                    code: 409,
+                    userInfo: [NSLocalizedDescriptionKey: "This order can no longer be released."]
+                )
+                errorPointer?.pointee = stateError
+                return nil
+            }
+            transaction.updateData([
+                "status": "open",
+                "fulfillerId": FieldValue.delete()
+            ], forDocument: orderRef)
+            return nil
+        }) { _, error in
+            if let error = error {
+                print("Error releasing order: \(error.localizedDescription)")
+                completion(false)
+            } else {
                 completion(true)
             }
         }
