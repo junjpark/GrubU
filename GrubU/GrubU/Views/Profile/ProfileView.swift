@@ -15,7 +15,7 @@ struct ProfileView: View {
     @State private var currentUser: User? = nil
     @State private var userListener: ListenerRegistration?
 
-    private var jobsCompletedCount: Int {
+    private var ordersCompletedCount: Int {
         activityController.fulfillingTasks.filter { $0.status == "completed" }.count
     }
 
@@ -61,10 +61,10 @@ struct ProfileView: View {
                         sectionTitle("Activity", systemImage: "chart.bar.fill")
                         modalCard {
                             VStack(spacing: 0) {
-                                NavigationLink(destination: ProfileJobsArchiveView()) {
+                                NavigationLink(destination: ProfileOrdersArchiveView()) {
                                     activityDrillDownRow(
-                                        label: "Completed jobs",
-                                        valueText: "\(jobsCompletedCount)"
+                                        label: "Completed orders",
+                                        valueText: "\(ordersCompletedCount)"
                                     )
                                 }
                                 .buttonStyle(.plain)

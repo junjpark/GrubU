@@ -1,7 +1,7 @@
 //
 //  OrderPreviewView.swift
 //
-//  One open order: details + accept job (Stripe Connect gate).
+//  One open order: details + accept order (Stripe Connect gate).
 //
 //  Created by Julie Baguio on 4/7/26.
 //
@@ -31,10 +31,10 @@ struct OrderPreviewView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(OrderStatusPresentation.earnerAvailableJobTitle)
+                            Text(OrderStatusPresentation.earnerAvailableOrderTitle)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(AppTheme.accent)
-                            Text(OrderStatusPresentation.earnerAvailableJobDetail)
+                            Text(OrderStatusPresentation.earnerAvailableOrderDetail)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .lineSpacing(4)
@@ -51,8 +51,8 @@ struct OrderPreviewView: View {
                                     .textCase(.uppercase)
                                     .bold()
                                 Text("$\(order.foodCost, specifier: "%.2f")")
-                                    .font(.title3)
-                                    .fontWeight(.semibold)
+                                    .font(.title)
+                                    .fontWeight(.bold)
                                     .foregroundColor(.primary)
                             }
                             Spacer()
@@ -63,8 +63,8 @@ struct OrderPreviewView: View {
                                     .textCase(.uppercase)
                                     .bold()
                                 Text(String(format: "+$%.2f", order.bountyAmount))
-                                    .font(.largeTitle)
-                                    .fontWeight(.heavy)
+                                    .font(.title)
+                                    .fontWeight(.bold)
                                     .foregroundStyle(AppTheme.accent)
                             }
                         }
@@ -106,7 +106,7 @@ struct OrderPreviewView: View {
                                 .font(.caption)
                                 .bold()
                                 .foregroundColor(.secondary)
-                            Text("By accepting this request, you commit to placing it in Grubhub with your meal points and uploading proof from Grubhub when the order is placed or complete. The requester picks up their own food. Unfulfilled jobs may affect your rating and account.")
+                            Text("By accepting this request, you commit to placing it in Grubhub with your meal points and uploading proof from Grubhub when the order is placed or complete. The requester picks up their own food. Unfulfilled orders may affect your rating and account.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .lineSpacing(4)
@@ -139,7 +139,7 @@ struct OrderPreviewView: View {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
-                                Text("Accept Job")
+                                Text("Accept Order")
                                     .font(.headline)
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -156,7 +156,7 @@ struct OrderPreviewView: View {
                 }
                 .background(AppTheme.pageBackground)
             }
-            .navigationTitle("Job details")
+            .navigationTitle("Order details")
             .navigationBarTitleDisplayMode(.inline)
             .blur(radius: isClaiming ? 2 : 0)
             .onAppear { fetchStripeStatus() }

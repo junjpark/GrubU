@@ -21,6 +21,12 @@ struct RequestTrackingView: View {
     @State private var selectedRating: Int = 5
     @State private var ratingSubmitted = false
 
+    @StateObject private var marketController = MarketController()
+    @State private var showCancelConfirmation = false
+    @State private var isCanceling = false
+    @State private var cancelErrorMessage: String?
+    @State private var showCancelledSuccessAlert = false
+
     init(order: Order) {
         self.initialOrder = order
     }
@@ -60,7 +66,50 @@ struct RequestTrackingView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    if order.status == "completed" {
+                    if order.status == "open" {
+                        Divider()
+                            .background(Color(.separator).opacity(0.55))
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Button(role: .destructive) {
+                                cancelErrorMessage = nil
+                                showCancelConfirmation = true
+                            } label: {
+                                HStack {
+                                    if isCanceling {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .red))
+                                            .padding(.trailing, 5)
+                                    }
+                                    Text(isCanceling ? "Canceling…" : "Cancel request")
+                                        .font(.body.weight(.semibold))
+                                        .foregroundStyle(.red)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .padding(.horizontal, 16)
+                                .background(AppTheme.surfaceBackground)
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .stroke(Color.red.opacity(0.35), lineWidth: 1)
+                                )
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isCanceling)
+
+                            Text("You can cancel until someone accepts your request.")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+
+                            if let cancelErrorMessage {
+                                Text(cancelErrorMessage)
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                            }
+                        }
+                    } else if order.status == "completed" {
                         Divider()
                             .background(Color(.separator).opacity(0.55))
                         VStack(spacing: 16) {
@@ -191,6 +240,43 @@ struct RequestTrackingView: View {
             activityController.setActiveRequestDetailOrderId(nil)
             orderListener?.remove()
             orderListener = nil
+        }
+        .alert(
+            "Cancel this request?",
+            isPresented: $showCancelConfirmation
+        ) {
+            Button("Keep request", role: .cancel) {}
+            Button("Cancel request", role: .destructive) {
+                cancelOpenRequest()
+            }
+        } message: {
+            Text("Your request will be removed from the marketplace. This can’t be undone.")
+        }
+        .alert(
+            "Request cancelled",
+            isPresented: $showCancelledSuccessAlert
+        ) {
+            Button("OK", role: .cancel) {
+                dismiss()
+            }
+        } message: {
+            Text("Your request has been removed from the marketplace.")
+        }
+    }
+
+    private func cancelOpenRequest() {
+        guard let orderId = order.id, !orderId.isEmpty else { return }
+        isCanceling = true
+        cancelErrorMessage = nil
+        marketController.cancelOpenRequest(orderId: orderId) { success in
+            DispatchQueue.main.async {
+                isCanceling = false
+                if success {
+                    showCancelledSuccessAlert = true
+                } else {
+                    cancelErrorMessage = "Couldn’t cancel — someone may have just accepted your request."
+                }
+            }
         }
     }
 

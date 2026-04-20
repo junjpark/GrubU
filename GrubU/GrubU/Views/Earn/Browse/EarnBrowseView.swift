@@ -37,7 +37,7 @@ struct EarnPayoutMealPointsHeader: View {
                     .foregroundStyle(.secondary)
                     .tracking(0.5)
                 Text(EarnAmountFormatting.mealPointsDisplay(foodCost))
-                    .font(.subheadline.weight(.bold))
+                    .font(.title2.weight(.bold))
                     .foregroundStyle(.primary)
             }
             Spacer(minLength: 8)
@@ -47,7 +47,7 @@ struct EarnPayoutMealPointsHeader: View {
                     .foregroundStyle(.secondary)
                     .tracking(0.5)
                 Text(EarnAmountFormatting.payoutHeadline(bounty: bountyAmount))
-                    .font(.title.weight(.bold))
+                    .font(.title2.weight(.bold))
                     .foregroundStyle(AppTheme.accent)
             }
         }
@@ -85,14 +85,14 @@ struct EarnAvailableRequestCard: View {
             HStack {
                 Spacer(minLength: 0)
                 HStack(spacing: 5) {
-                    Text("Accept Job")
+                    Text("Accept Order")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.accent)
                     Image(systemName: "arrow.right")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.accent)
                 }
-                .accessibilityLabel("Accept job, view details")
+                .accessibilityLabel("Accept order, view details")
             }
             .padding(.top, 4)
         }

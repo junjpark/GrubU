@@ -28,7 +28,7 @@ enum ActiveOrderStripFormatting {
     }
 }
 
-/// Same card as the Earn tab “My Active Jobs” strip.
+/// Same card as the Earn tab “My Active Orders” strip.
 struct CompactFulfillerActiveOrderRow: View {
     let order: Order
     let showsUnreadDot: Bool
