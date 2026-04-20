@@ -1,8 +1,10 @@
 //
 //  IssueReportController.swift
 //
-//  Writes an issue report to Firestore and pauses the underlying order
-//  so it can't advance or pay out while the support team investigates.
+//  Writes an issue report to Firestore. The matching Cloud Function
+//  (`onIssueReportCreated`) flips the underlying order to `issue_reported`
+//  server-side with admin privileges, so the client never needs write
+//  permission on the order's `status` field.
 //
 //  Created by Julie Baguio on 4/20/26.
 //
@@ -52,7 +54,6 @@ final class IssueReportController: ObservableObject {
 
         let roleString = (role == .requester) ? "requester" : "fulfiller"
         let reportRef = db.collection("issueReports").document()
-        let orderRef = db.collection("orders").document(orderId)
 
         let reportPayload: [String: Any] = [
             "orderId": orderId,
@@ -65,21 +66,7 @@ final class IssueReportController: ObservableObject {
             "createdAt": FieldValue.serverTimestamp()
         ]
 
-        var orderUpdate: [String: Any] = [
-            "issueReportId": reportRef.documentID,
-            "lastIssueReportedAt": FieldValue.serverTimestamp()
-        ]
-        // Completed orders stay completed (payout already happened);
-        // everything else gets frozen in the "issue reported" state.
-        if order.status != "completed" {
-            orderUpdate["status"] = Self.issueStatus
-        }
-
-        let batch = db.batch()
-        batch.setData(reportPayload, forDocument: reportRef)
-        batch.updateData(orderUpdate, forDocument: orderRef)
-
-        batch.commit { [weak self] error in
+        reportRef.setData(reportPayload) { [weak self] error in
             DispatchQueue.main.async {
                 self?.isSubmitting = false
                 if let error = error {

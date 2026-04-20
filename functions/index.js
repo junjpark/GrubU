@@ -213,24 +213,37 @@ exports.onIssueReportCreated = onDocumentCreated("issueReports/{reportId}", asyn
         description: report.description,
     });
 
-    // TODO: wire outbound notification of your choice, e.g.:
-    //
-    //   await fetch(SLACK_WEBHOOK, {
-    //     method: "POST",
-    //     body: JSON.stringify({
-    //       text: `:rotating_light: New GrubU issue on order ${report.orderId}\n${report.description}`
-    //     })
-    //   });
-    //
-    // or write to the "Trigger Email" extension's `mail` collection:
-    //
-    //   await admin.firestore().collection("mail").add({
-    //     to: "support@grubu.app",
-    //     message: {
-    //       subject: `New GrubU issue on order ${report.orderId}`,
-    //       text: report.description,
-    //     },
-    //   });
+    // Freeze the underlying order so it can't advance or pay out while
+    // support investigates. Completed orders stay completed because payout
+    // already went through.
+    const orderId = report.orderId;
+    if (orderId && typeof orderId === "string") {
+        try {
+            const db = admin.firestore();
+            const orderRef = db.collection("orders").doc(orderId);
+            const orderSnap = await orderRef.get();
+
+            if (orderSnap.exists) {
+                const currentStatus = orderSnap.data().status;
+                const update = {
+                    issueReportId: reportId,
+                    lastIssueReportedAt: admin.firestore.FieldValue.serverTimestamp(),
+                };
+                if (currentStatus !== "completed") {
+                    update.status = "issue_reported";
+                }
+                await orderRef.update(update);
+                console.log(`onIssueReportCreated: order ${orderId} frozen (was "${currentStatus}")`);
+            } else {
+                console.warn(`onIssueReportCreated: order ${orderId} not found, cannot freeze.`);
+            }
+        } catch (err) {
+            console.error("onIssueReportCreated: failed to update order", orderId, err);
+        }
+    }
+
+    // TODO: wire outbound notification of your choice, e.g. a Slack webhook
+    // or the Firebase "Trigger Email" extension's `mail` collection.
 
     return null;
 });
