@@ -54,32 +54,38 @@ exports.sendOrderNotifications = onDocumentUpdated("orders/{orderId}", async (ev
         body = `The requester confirmed they received the food. Great job!`;
 
         const db = admin.firestore();
-        const batch = db.batch();
-        const usersCol = db.collection("users");
 
-        if (requesterId && fulfillerId && requesterId === fulfillerId) {
-            batch.update(usersCol.doc(requesterId), {
-                completedOrders: admin.firestore.FieldValue.increment(1),
-            });
+        const bumpCompleted = async (uid) => {
+            if (!uid || typeof uid !== "string" || uid.length === 0) return;
+            try {
+                await db.collection("users").doc(uid).set(
+                    { completedOrders: admin.firestore.FieldValue.increment(1) },
+                    { merge: true }
+                );
+            } catch (e) {
+                console.error("bumpCompleted failed for", uid, e);
+            }
+        };
+
+        const rid = typeof requesterId === "string" && requesterId.length > 0 ? requesterId : null;
+        const fid = typeof fulfillerId === "string" && fulfillerId.length > 0 ? fulfillerId : null;
+
+        if (rid && fid && rid === fid) {
+            await bumpCompleted(rid);
         } else {
-            if (requesterId) {
-                batch.update(usersCol.doc(requesterId), {
-                    completedOrders: admin.firestore.FieldValue.increment(1),
-                });
-            }
-            if (fulfillerId) {
-                batch.update(usersCol.doc(fulfillerId), {
-                    completedOrders: admin.firestore.FieldValue.increment(1),
-                });
-            }
+            if (rid) await bumpCompleted(rid);
+            if (fid && fid !== rid) await bumpCompleted(fid);
         }
-
-        await batch.commit();
     } else {
         return null;
     }
 
     try {
+        if (!targetUserId || typeof targetUserId !== "string" || targetUserId.length === 0) {
+            console.log("sendOrderNotifications: missing targetUserId, skipping push.");
+            return null;
+        }
+
         const userDoc = await admin.firestore().collection("users").doc(targetUserId).get();
         
         if (!userDoc.exists) {
@@ -131,7 +137,7 @@ exports.syncFulfillerRatingFromOrder = onDocumentUpdated("orders/{orderId}", asy
     }
 
     const fulfillerId = after.fulfillerId;
-    if (!fulfillerId || typeof fulfillerId !== "string") {
+    if (!fulfillerId || typeof fulfillerId !== "string" || fulfillerId.length === 0) {
         return null;
     }
 
@@ -141,51 +147,42 @@ exports.syncFulfillerRatingFromOrder = onDocumentUpdated("orders/{orderId}", asy
         return null;
     };
 
-    const next = toNumber(nextRating);
-    const prev = prevRating === undefined || prevRating === null ? null : toNumber(prevRating);
-    if (next === null) {
-        return null;
-    }
-
     const db = admin.firestore();
     const userRef = db.collection("users").doc(fulfillerId);
 
     try {
-        await db.runTransaction(async (t) => {
-            const userSnap = await t.get(userRef);
-            if (!userSnap.exists) {
-                console.log("syncFulfillerRatingFromOrder: no user doc for fulfiller", fulfillerId);
-                return;
-            }
+        const qs = await db.collection("orders")
+            .where("fulfillerId", "==", fulfillerId)
+            .get();
 
-            const ud = userSnap.data() || {};
-            const totalRatingsRaw = ud.totalRatingsReceived;
-            const totalRatings =
-                typeof totalRatingsRaw === "number" && !Number.isNaN(totalRatingsRaw)
-                    ? totalRatingsRaw
-                    : Number(totalRatingsRaw) || 0;
-
-            const currentRatingRaw = ud.rating;
-            const currentRating =
-                typeof currentRatingRaw === "number" && !Number.isNaN(currentRatingRaw)
-                    ? currentRatingRaw
-                    : Number(currentRatingRaw) || 0;
-
-            if (prev === null) {
-                const newTotal = totalRatings + 1;
-                const numerator = currentRating * totalRatings + next;
-                const newAverage = newTotal > 0 ? numerator / newTotal : next;
-                t.update(userRef, {
-                    rating: newAverage,
-                    totalRatingsReceived: newTotal,
-                });
-                return;
-            }
-
-            const count = Math.max(1, totalRatings);
-            const newAverage = (currentRating * count - prev + next) / count;
-            t.update(userRef, { rating: newAverage });
+        let sum = 0;
+        let count = 0;
+        qs.forEach((doc) => {
+            const r = doc.data().fulfillerRating;
+            if (r === undefined || r === null) return;
+            const n = toNumber(r);
+            if (n === null || Number.isNaN(n)) return;
+            sum += n;
+            count += 1;
         });
+
+        if (count === 0) {
+            await userRef.set(
+                {
+                    rating: admin.firestore.FieldValue.delete(),
+                    totalRatingsReceived: 0,
+                },
+                { merge: true }
+            );
+        } else {
+            await userRef.set(
+                {
+                    rating: sum / count,
+                    totalRatingsReceived: count,
+                },
+                { merge: true }
+            );
+        }
     } catch (e) {
         console.error("syncFulfillerRatingFromOrder:", e);
     }
