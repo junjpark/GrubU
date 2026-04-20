@@ -20,8 +20,10 @@ enum OrderStatusPresentation {
     /// Fulfiller progress strip (after claim only).
     static let fulfillerProgressPipeline = ["claimed", "ordered", "delivered", "completed"]
 
+    /// Returns -1 when `status` isn't part of the regular pipeline (e.g.
+    /// `issue_reported`), so the tracking strip renders no filled segments.
     static func progressIndex(pipeline: [String], status: String) -> Int {
-        pipeline.firstIndex(of: status) ?? 0
+        pipeline.firstIndex(of: status) ?? -1
     }
 
     // MARK: - Browse (open job, fulfiller only)
@@ -34,6 +36,8 @@ enum OrderStatusPresentation {
     // MARK: - Short labels (hub rows, list rows, tracking headline)
 
     static func shortLabel(status: String, role: OrderStatusRole) -> String {
+        if status == IssueReportController.issueStatus { return "Issue Reported" }
+
         switch role {
         case .requester:
             switch status {
@@ -60,6 +64,10 @@ enum OrderStatusPresentation {
     // MARK: - Detail copy (tracking screens)
 
     static func detailMessage(status: String, role: OrderStatusRole) -> String {
+        if status == IssueReportController.issueStatus {
+            return "Our team has been notified and is reviewing this order. Progress is paused until the issue is resolved — we'll reach out by email as soon as possible."
+        }
+
         switch role {
         case .requester:
             switch status {
@@ -95,6 +103,8 @@ enum OrderStatusPresentation {
     // MARK: - Row / chip tint (matches existing hub styling)
 
     static func accentColor(status: String, role: OrderStatusRole) -> Color {
+        if status == IssueReportController.issueStatus { return AppTheme.accent }
+
         switch role {
         case .requester:
             switch status {

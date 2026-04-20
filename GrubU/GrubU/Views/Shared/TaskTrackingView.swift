@@ -178,6 +178,8 @@ struct TaskTrackingView: View {
                 }
                 .padding(16)
                 .profileModalCardStyle()
+
+                ReportIssueLink(order: order, role: .fulfiller)
             }
             .padding(.horizontal)
             .padding(.bottom, AppTheme.tabBarBottomClearance)

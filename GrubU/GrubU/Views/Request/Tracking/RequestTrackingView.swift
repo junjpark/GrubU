@@ -171,6 +171,8 @@ struct RequestTrackingView: View {
                 }
                 .padding(16)
                 .profileModalCardStyle()
+
+                ReportIssueLink(order: order, role: .requester)
             }
             .padding(.horizontal)
             .padding(.bottom, AppTheme.tabBarBottomClearance)

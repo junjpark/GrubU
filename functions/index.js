@@ -3,7 +3,7 @@ admin.initializeApp();
 
 const { beforeUserCreated } = require("firebase-functions/v2/identity");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
@@ -186,6 +186,51 @@ exports.syncFulfillerRatingFromOrder = onDocumentUpdated("orders/{orderId}", asy
     } catch (e) {
         console.error("syncFulfillerRatingFromOrder:", e);
     }
+
+    return null;
+});
+
+/**
+ * Fires every time the app writes a new support ticket to `issueReports`.
+ * Today it just logs a structured summary (visible in Firebase Functions
+ * logs) so the team has an easy feed to monitor; extend this to push to
+ * Slack, email via SendGrid, or the Firebase "Trigger Email" extension.
+ */
+exports.onIssueReportCreated = onDocumentCreated("issueReports/{reportId}", async (event) => {
+    const snap = event.data;
+    if (!snap) return null;
+
+    const report = snap.data() || {};
+    const reportId = event.params.reportId;
+
+    console.log("New GrubU issue report:", {
+        reportId,
+        orderId: report.orderId,
+        reporterUid: report.reporterUid,
+        reporterRole: report.reporterRole,
+        reporterEmail: report.reporterEmail,
+        orderStatusAtReport: report.orderStatusAtReport,
+        description: report.description,
+    });
+
+    // TODO: wire outbound notification of your choice, e.g.:
+    //
+    //   await fetch(SLACK_WEBHOOK, {
+    //     method: "POST",
+    //     body: JSON.stringify({
+    //       text: `:rotating_light: New GrubU issue on order ${report.orderId}\n${report.description}`
+    //     })
+    //   });
+    //
+    // or write to the "Trigger Email" extension's `mail` collection:
+    //
+    //   await admin.firestore().collection("mail").add({
+    //     to: "support@grubu.app",
+    //     message: {
+    //       subject: `New GrubU issue on order ${report.orderId}`,
+    //       text: report.description,
+    //     },
+    //   });
 
     return null;
 });
