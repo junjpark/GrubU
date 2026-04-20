@@ -47,7 +47,7 @@ struct NewRequestView: View {
                 .transition(.move(edge: .bottom))
             }
         }
-        .navigationTitle("Select Restaurant")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { menuManager.fetchMenus() }
     }
