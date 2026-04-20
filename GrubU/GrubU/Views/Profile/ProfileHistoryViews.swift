@@ -1,54 +1,33 @@
 //
 //  ProfileHistoryViews.swift
 //
-//  Split archive: completed jobs only vs completed requests only.
+//  Split archive: completed orders only vs completed requests only.
 //
 //  Created by Julie Baguio on 4/7/26.
 //
 
 import SwiftUI
 
-// MARK: - Completed jobs archive
+// MARK: - Completed orders archive
 
-struct ProfileJobsArchiveView: View {
+struct ProfileOrdersArchiveView: View {
     @EnvironmentObject var activityController: ActivityController
 
-    private var completedJobs: [Order] {
+    private var completedOrders: [Order] {
         activityController.fulfillingTasks.filter { $0.status == "completed" }
     }
 
     var body: some View {
-        Group {
-            if completedJobs.isEmpty {
-                ContentUnavailableView(
-                    "No completed jobs yet",
-                    systemImage: "briefcase",
-                    description: Text("Finished work you accepted shows up here.")
-                )
-            } else {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        ForEach(completedJobs.indices, id: \.self) { index in
-                            let order = completedJobs[index]
-                            NavigationLink(destination: TaskTrackingView(order: order)) {
-                                ArchiveOrderRow(order: order)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.vertical, 16)
-                                    .padding(.horizontal, ProfileLayout.horizontalPadding)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            if index < completedJobs.count - 1 {
-                                Divider()
-                                    .padding(.leading, ProfileLayout.horizontalPadding)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .navigationTitle("Completed jobs")
-        .navigationBarTitleDisplayMode(.inline)
+        ProfileArchiveScreen(
+            title: "Completed orders",
+            sectionTitle: "Order history",
+            sectionIcon: "bag.fill",
+            orders: completedOrders,
+            emptyTitle: "No completed orders yet",
+            emptyMessage: "Orders you accepted and finished show up here.",
+            emptyIcon: "bag",
+            destination: { order in AnyView(TaskTrackingView(order: order)) }
+        )
     }
 }
 
@@ -62,68 +41,132 @@ struct ProfileRequestsArchiveView: View {
     }
 
     var body: some View {
-        Group {
-            if completedRequests.isEmpty {
-                ContentUnavailableView(
-                    "No completed requests yet",
-                    systemImage: "tray",
-                    description: Text("Orders you posted that fully finished show up here.")
-                )
-            } else {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        ForEach(completedRequests.indices, id: \.self) { index in
-                            let order = completedRequests[index]
-                            NavigationLink(destination: RequestTrackingView(order: order)) {
-                                ArchiveOrderRow(order: order)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.vertical, 16)
-                                    .padding(.horizontal, ProfileLayout.horizontalPadding)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            if index < completedRequests.count - 1 {
-                                Divider()
-                                    .padding(.leading, ProfileLayout.horizontalPadding)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .navigationTitle("Completed requests")
-        .navigationBarTitleDisplayMode(.inline)
+        ProfileArchiveScreen(
+            title: "Completed requests",
+            sectionTitle: "Request history",
+            sectionIcon: "tray.full.fill",
+            orders: completedRequests,
+            emptyTitle: "No completed requests yet",
+            emptyMessage: "Orders you posted that fully finished show up here.",
+            emptyIcon: "tray",
+            destination: { order in AnyView(RequestTrackingView(order: order)) }
+        )
     }
 }
 
-// MARK: - Shared row (archive only; no status)
+// MARK: - Shared archive screen (Profile chrome)
 
-struct ArchiveOrderRow: View {
+private struct ProfileArchiveScreen: View {
+    let title: String
+    let sectionTitle: String
+    let sectionIcon: String
+    let orders: [Order]
+    let emptyTitle: String
+    let emptyMessage: String
+    let emptyIcon: String
+    let destination: (Order) -> AnyView
+
+    var body: some View {
+        Group {
+            if orders.isEmpty {
+                emptyState
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ProfileSectionHeader(title: "\(sectionTitle) (\(orders.count))", systemImage: sectionIcon)
+
+                        VStack(spacing: 0) {
+                            ForEach(Array(orders.enumerated()), id: \.1.id) { index, order in
+                                NavigationLink {
+                                    destination(order)
+                                } label: {
+                                    ProfileArchiveOrderRow(order: order)
+                                }
+                                .buttonStyle(.plain)
+
+                                if index < orders.count - 1 {
+                                    Divider()
+                                        .background(Color(.separator))
+                                }
+                            }
+                        }
+                        .profileModalCardStyle()
+
+                        Spacer(minLength: 24)
+                    }
+                    .padding(.horizontal, ProfileLayout.horizontalPadding)
+                    .padding(.top, 18)
+                    .padding(.bottom, AppTheme.tabBarBottomClearance)
+                }
+                .scrollContentBackground(.hidden)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppTheme.pageBackground)
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 14) {
+            Image(systemName: emptyIcon)
+                .font(.system(size: 44, weight: .medium))
+                .foregroundStyle(AppTheme.accent.opacity(0.85))
+            Text(emptyTitle)
+                .font(.headline)
+                .foregroundStyle(.primary)
+            Text(emptyMessage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.bottom, AppTheme.tabBarBottomClearance)
+    }
+}
+
+// MARK: - Archive row (matches Profile’s row typography)
+
+private struct ProfileArchiveOrderRow: View {
     let order: Order
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(order.restaurantName)
-                    .font(.headline)
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(.primary)
-                Spacer(minLength: 8)
-                Text("$\(order.bountyAmount, specifier: "%.2f")")
-                    .font(.subheadline.weight(.medium))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(orderLineItemsSummary)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let timestampText {
+                    Text(timestampText)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(orderLineItemsSummary)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if let timestampText {
-                Text(timestampText)
-                    .font(.caption2)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(String(format: "$%.2f", order.bountyAmount))
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(AppTheme.accent)
+                    .monospacedDigit()
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.tertiary)
             }
         }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
+        .contentShape(Rectangle())
     }
 
     private var orderLineItemsSummary: String {

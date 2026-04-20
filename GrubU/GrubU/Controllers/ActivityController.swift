@@ -1,7 +1,7 @@
 //
 //  ActivityController.swift
 //
-//  Live Firestore lists for your requests & fulfiller jobs + unread dots.
+//  Live Firestore lists for your requests & fulfiller orders + unread dots.
 //
 //  Created by Julie Baguio on 4/7/26.
 //
@@ -212,7 +212,14 @@ class ActivityController: ObservableObject {
         // Brand-new orders on the requester side mean THEY just created it; no dot.
         guard let old = oldStatus, old != newStatus else { return false }
         // Status changes driven by the fulfiller.
-        return newStatus == "claimed" || newStatus == "ordered" || newStatus == "delivered"
+        if newStatus == "claimed" || newStatus == "ordered" || newStatus == "delivered" {
+            return true
+        }
+        // Fulfiller released a previously claimed order back to the marketplace.
+        if old == "claimed" && newStatus == "open" {
+            return true
+        }
+        return false
     }
 
     private func shouldDotTaskSide(oldStatus: String?, newStatus: String) -> Bool {

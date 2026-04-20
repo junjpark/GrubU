@@ -26,10 +26,10 @@ enum OrderStatusPresentation {
         pipeline.firstIndex(of: status) ?? -1
     }
 
-    // MARK: - Browse (open job, fulfiller only)
+    // MARK: - Browse (open order, fulfiller only)
 
-    static let earnerAvailableJobTitle = "Available Order"
-    static let earnerAvailableJobDetail = """
+    static let earnerAvailableOrderTitle = "Available Order"
+    static let earnerAvailableOrderDetail = """
     This request is open. Accept it when you're ready to place the order in Grubhub using your meal points.
     """
 

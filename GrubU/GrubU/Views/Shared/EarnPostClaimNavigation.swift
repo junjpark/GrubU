@@ -1,7 +1,7 @@
 //
 //  EarnPostClaimNavigation.swift
 //
-//  After accepting a job, push TaskTrackingView from the Earn stack.
+//  After accepting an order, push TaskTrackingView from the Earn stack.
 //
 //  Created by Julie Baguio on 4/20/26.
 //
