@@ -117,7 +117,7 @@ class ActivityController: ObservableObject {
     // MARK: - Snapshot handlers
 
     private func applyRequestSnapshot(_ orders: [Order]) {
-        requestedOrders = orders
+        requestedOrders = Self.sortedByNewest(orders)
         let newMap = Dictionary(uniqueKeysWithValues: orders.compactMap { o -> (String, String)? in
             guard let id = o.id else { return nil }
             return (id, o.status)
@@ -152,7 +152,7 @@ class ActivityController: ObservableObject {
     }
 
     private func applyTaskSnapshot(_ orders: [Order]) {
-        fulfillingTasks = orders
+        fulfillingTasks = Self.sortedByNewest(orders)
         let newMap = Dictionary(uniqueKeysWithValues: orders.compactMap { o -> (String, String)? in
             guard let id = o.id else { return nil }
             return (id, o.status)
@@ -180,6 +180,19 @@ class ActivityController: ObservableObject {
         hasSeededTask = true
         persistTaskStatus()
         persistTaskUnread()
+    }
+
+    /// Newest first. Orders without a `createdAt` (e.g. offline‑written docs that
+    /// haven't resolved their server timestamp yet) are pushed to the bottom.
+    private static func sortedByNewest(_ orders: [Order]) -> [Order] {
+        orders.sorted { lhs, rhs in
+            switch (lhs.createdAt, rhs.createdAt) {
+            case let (l?, r?): return l > r
+            case (_?, nil):    return true
+            case (nil, _?):    return false
+            case (nil, nil):   return false
+            }
+        }
     }
 
     // MARK: - Dot rules

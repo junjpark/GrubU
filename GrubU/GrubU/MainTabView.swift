@@ -35,6 +35,7 @@ struct MainTabView: View {
                 .tabItem {
                     Label("Activity", systemImage: "arrow.up.arrow.down.circle.fill")
                 }
+                .badge(activityController.hasAnyUnreadActivity ? Text(" ") : nil)
                 .tag(2)
 
             ProfileView()
