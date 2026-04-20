@@ -16,17 +16,12 @@ struct ReportIssueView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var controller = IssueReportController()
     @State private var description: String = ""
-    @State private var submitted = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    if submitted {
-                        successCard
-                    } else {
-                        formCard
-                    }
+                    formCard
                 }
                 .padding(20)
                 .padding(.bottom, AppTheme.tabBarBottomClearance)
@@ -37,7 +32,7 @@ struct ReportIssueView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(submitted ? "Close" : "Cancel") { dismiss() }
+                    Button("Cancel") { dismiss() }
                 }
             }
         }
@@ -112,36 +107,6 @@ struct ReportIssueView: View {
         )
     }
 
-    // MARK: - Success
-
-    private var successCard: some View {
-        VStack(spacing: 18) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(AppTheme.accent)
-            Text("Report submitted")
-                .font(.title3.bold())
-            Text("Our team has been notified and will reach out by email. You can close this window.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Button {
-                dismiss()
-            } label: {
-                Text("Close")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(AppTheme.accent)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            }
-            .padding(.top, 8)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 30)
-    }
-
     // MARK: - Helpers
 
     private var canSubmit: Bool {
@@ -151,7 +116,7 @@ struct ReportIssueView: View {
 
     private func submit() {
         controller.submitReport(order: order, role: role, description: description) { success in
-            if success { submitted = true }
+            if success { dismiss() }
         }
     }
 }

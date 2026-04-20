@@ -9,6 +9,31 @@
 
 import SwiftUI
 
+/// Prominent banner replacing the normal tracking content while an order is
+/// under review by the support team.
+struct UnderInvestigationCard: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "exclamationmark.shield.fill")
+                .font(.system(size: 52))
+                .foregroundStyle(AppTheme.accent)
+
+            Text("This order is currently being investigated.")
+                .font(.title3.bold())
+                .multilineTextAlignment(.center)
+
+            Text("Check back later — our team is reviewing this order and will reach out by email as soon as there's an update.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(20)
+        .profileModalCardStyle()
+    }
+}
+
 struct ReportIssueLink: View {
     let order: Order
     let role: OrderStatusRole

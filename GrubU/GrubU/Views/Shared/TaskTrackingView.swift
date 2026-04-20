@@ -39,21 +39,63 @@ struct TaskTrackingView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                HStack(spacing: 10) {
-                    let pipeline = OrderStatusPresentation.fulfillerProgressPipeline
-                    let currentIndex = OrderStatusPresentation.progressIndex(pipeline: pipeline, status: order.status)
-
-                    ForEach(0..<pipeline.count, id: \.self) { index in
-                        Rectangle()
-                            .frame(height: 8)
-                            .foregroundStyle(index <= currentIndex ? AppTheme.accent : Color(.separator).opacity(0.45))
-                            .cornerRadius(4)
-                    }
+                if order.status == IssueReportController.issueStatus {
+                    investigationContent
+                } else {
+                    activeContent
                 }
-                .padding(14)
-                .profileModalCardStyle()
+            }
+            .padding(.horizontal)
+            .padding(.bottom, AppTheme.tabBarBottomClearance)
+        }
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.pageBackground)
+        .navigationTitle("Track Task")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            listenToOrder()
+            let oid = initialOrder.id ?? ""
+            if !oid.isEmpty {
+                activityController.setActiveTaskDetailOrderId(oid)
+                activityController.markTaskOrderSeen(oid)
+            }
+        }
+        .onDisappear {
+            activityController.setActiveTaskDetailOrderId(nil)
+            earnPostClaimNavigation?.clearPostClaimIfMatches(orderId: initialOrder.id)
+            orderListener?.remove()
+            orderListener = nil
+        }
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(image: $selectedImage)
+        }
+    }
 
-                OrderLineItemsSummaryCard(order: order)
+    private var investigationContent: some View {
+        VStack(spacing: 16) {
+            OrderLineItemsSummaryCard(order: order)
+            UnderInvestigationCard()
+            ReportIssueLink(order: order, role: .fulfiller)
+        }
+    }
+
+    private var activeContent: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 10) {
+                let pipeline = OrderStatusPresentation.fulfillerProgressPipeline
+                let currentIndex = OrderStatusPresentation.progressIndex(pipeline: pipeline, status: order.status)
+
+                ForEach(0..<pipeline.count, id: \.self) { index in
+                    Rectangle()
+                        .frame(height: 8)
+                        .foregroundStyle(index <= currentIndex ? AppTheme.accent : Color(.separator).opacity(0.45))
+                        .cornerRadius(4)
+                }
+            }
+            .padding(14)
+            .profileModalCardStyle()
+
+            OrderLineItemsSummaryCard(order: order)
 
                 VStack(alignment: .leading, spacing: 20) {
                     VStack(alignment: .leading, spacing: 10) {
@@ -180,33 +222,9 @@ struct TaskTrackingView: View {
                 .profileModalCardStyle()
 
                 ReportIssueLink(order: order, role: .fulfiller)
-            }
-            .padding(.horizontal)
-            .padding(.bottom, AppTheme.tabBarBottomClearance)
-        }
-        .scrollContentBackground(.hidden)
-        .background(AppTheme.pageBackground)
-        .navigationTitle("Track Task")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            listenToOrder()
-            let oid = initialOrder.id ?? ""
-            if !oid.isEmpty {
-                activityController.setActiveTaskDetailOrderId(oid)
-                activityController.markTaskOrderSeen(oid)
-            }
-        }
-        .onDisappear {
-            activityController.setActiveTaskDetailOrderId(nil)
-            earnPostClaimNavigation?.clearPostClaimIfMatches(orderId: initialOrder.id)
-            orderListener?.remove()
-            orderListener = nil
-        }
-        .sheet(isPresented: $showImagePicker) {
-            ImagePicker(image: $selectedImage)
         }
     }
-    
+
     // --- UI Helpers ---
     var buttonLabel: String {
         order.status == "claimed" ? "Confirm & Mark as Ordered" : "Submit proof & notify requester"
