@@ -81,7 +81,7 @@ struct OrderPreviewView: View {
                             }
                         }
                         .padding()
-                        .background(Color(UIColor.secondarySystemBackground))
+                        .background(AppTheme.surfaceBackground)
                         .cornerRadius(12)
 
                         VStack(alignment: .leading, spacing: 4) {
@@ -132,7 +132,7 @@ struct OrderPreviewView: View {
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
                 }
-                .background(Color(UIColor.systemBackground))
+                .background(AppTheme.pageBackground)
             }
             .navigationTitle("Job details")
             .navigationBarTitleDisplayMode(.inline)

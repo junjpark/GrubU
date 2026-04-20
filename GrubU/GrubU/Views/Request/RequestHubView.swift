@@ -96,7 +96,7 @@ struct RequestHubView: View {
                             .foregroundStyle(.tertiary)
                     }
                     .padding(12)
-                    .background(Color(.secondarySystemGroupedBackground))
+                    .background(AppTheme.surfaceBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
@@ -106,7 +106,7 @@ struct RequestHubView: View {
         }
         .padding(.top, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemGroupedBackground))
+        .background(AppTheme.pageBackground)
     }
 
     @ViewBuilder
@@ -134,7 +134,7 @@ struct RequestHubView: View {
             }
             .padding(10)
             .frame(width: 148, alignment: .leading)
-            .background(Color(.systemBackground))
+            .background(AppTheme.surfaceBackground)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)

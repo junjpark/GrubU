@@ -34,7 +34,7 @@ struct EarnTabView: View {
                 EarnBrowseView(marketController: marketController)
             }
             .navigationTitle("Earn")
-            .background(Color(.systemGroupedBackground))
+            .background(AppTheme.pageBackground)
             .onAppear {
                 if let uid = authController.userSession?.uid {
                     activityController.fetchActivity(for: uid)
@@ -95,7 +95,7 @@ struct EarnTabView: View {
                             .foregroundStyle(.tertiary)
                     }
                     .padding(12)
-                    .background(Color(.secondarySystemGroupedBackground))
+                    .background(AppTheme.surfaceBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
@@ -105,7 +105,7 @@ struct EarnTabView: View {
         }
         .padding(.top, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemGroupedBackground))
+        .background(AppTheme.pageBackground)
     }
 
     @ViewBuilder
@@ -133,7 +133,7 @@ struct EarnTabView: View {
             }
             .padding(10)
             .frame(width: 148, alignment: .leading)
-            .background(Color(.systemBackground))
+            .background(AppTheme.surfaceBackground)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)

@@ -67,7 +67,7 @@ struct OrderReviewView: View {
                     }
                 }
                 .padding()
-                .background(Color(UIColor.secondarySystemBackground))
+                .background(AppTheme.surfaceBackground)
                 .cornerRadius(12)
 
                 VStack(spacing: 12) {
@@ -125,7 +125,7 @@ struct OrderReviewView: View {
                     }
                 }
                 .padding()
-                .background(Color(UIColor.secondarySystemBackground))
+                .background(AppTheme.surfaceBackground)
                 .cornerRadius(12)
 
                 if let error = paymentController.errorMessage {
@@ -174,7 +174,7 @@ struct OrderReviewView: View {
                 }
             }
             .padding()
-            .background(Color(UIColor.systemBackground))
+            .background(AppTheme.pageBackground)
         }
         .onAppear {
             Task {

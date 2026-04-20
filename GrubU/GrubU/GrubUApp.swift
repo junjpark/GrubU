@@ -12,6 +12,7 @@ import FirebaseMessaging
 import FirebaseFirestore
 import UserNotifications
 import FirebaseAuth
+import UIKit
 
 class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
     
@@ -31,6 +32,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNot
         
         application.registerForRemoteNotifications()
         Messaging.messaging().delegate = self
+
+        // Keep list/collection screens aligned with the app's white + warm surface palette.
+        UITableView.appearance().backgroundColor = UIColor(AppTheme.pageBackground)
+        UICollectionView.appearance().backgroundColor = UIColor(AppTheme.pageBackground)
         
         return true
     }
@@ -75,6 +80,7 @@ struct GrubUApp: App {
                 }
             }
             .environmentObject(authManager)
+            .fontDesign(.rounded)
         }
     }
 }

@@ -43,7 +43,7 @@ struct NewRequestView: View {
                     .padding(.horizontal)
                     .padding(.bottom, 12)
                 }
-                .background(Color(.systemGroupedBackground))
+                .background(AppTheme.pageBackground)
                 .transition(.move(edge: .bottom))
             }
         }

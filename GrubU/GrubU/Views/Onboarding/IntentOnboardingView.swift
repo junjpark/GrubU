@@ -48,7 +48,7 @@ struct IntentOnboardingView: View {
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(.systemGroupedBackground))
+            .background(AppTheme.pageBackground)
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -71,7 +71,7 @@ struct IntentOnboardingView: View {
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(.systemBackground))
+            .background(AppTheme.surfaceBackground)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
             .contentShape(RoundedRectangle(cornerRadius: 16))

@@ -93,7 +93,7 @@ struct OpenJobCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
+        .background(AppTheme.surfaceBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
