@@ -28,3 +28,23 @@ struct Order: Identifiable, Codable {
     var fulfillerRating: Double?
     @ServerTimestamp var createdAt: Date?
 }
+
+extension Order: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(requesterId)
+        hasher.combine(restaurantName)
+        hasher.combine(status)
+        hasher.combine(foodCost)
+        hasher.combine(bountyAmount)
+    }
+
+    static func == (lhs: Order, rhs: Order) -> Bool {
+        lhs.id == rhs.id
+            && lhs.requesterId == rhs.requesterId
+            && lhs.restaurantName == rhs.restaurantName
+            && lhs.status == rhs.status
+            && lhs.foodCost == rhs.foodCost
+            && lhs.bountyAmount == rhs.bountyAmount
+    }
+}

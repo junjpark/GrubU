@@ -1,7 +1,7 @@
 //
 //  MainTabView.swift
 //
-//  Tab bar: Earn / Request / Profile + shared state wired in.
+//  Earn / Request / Profile with a full-width custom tab bar.
 //
 //  Created by user287016 on 4/7/26.
 //
@@ -21,24 +21,21 @@ struct MainTabView: View {
     @State private var appliedIntentDefault = false
 
     var body: some View {
-        TabView(selection: $tabState.selectedTab) {
-            EarnTabView()
-                .tabItem {
-                    Label("Earn", systemImage: "dollarsign.circle.fill")
-                }
-                .tag(0)
-
-            RequestHubView()
-                .tabItem {
-                    Label("Request", systemImage: "tray.and.arrow.down.fill")
-                }
-                .tag(1)
-
-            ProfileView()
-                .tabItem {
-                    Label("Profile", systemImage: "person.fill")
-                }
-                .tag(2)
+        Group {
+            switch tabState.selectedTab {
+            case 0:
+                EarnTabView()
+            case 1:
+                RequestHubView()
+            case 2:
+                ProfileView()
+            default:
+                EarnTabView()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            fullWidthTabBar
         }
         .accentColor(.orange)
         .environmentObject(tabState)
@@ -52,5 +49,54 @@ struct MainTabView: View {
                 }
             }
         }
+    }
+
+    private var fullWidthTabBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+                .background(Color(.separator))
+
+            HStack(spacing: 0) {
+                tabItem(
+                    index: 0,
+                    title: "Earn",
+                    systemImage: "banknote.fill"
+                )
+                tabItem(
+                    index: 1,
+                    title: "Request",
+                    systemImage: "fork.knife"
+                )
+                tabItem(
+                    index: 2,
+                    title: "Profile",
+                    systemImage: "person.fill"
+                )
+            }
+            .padding(.top, 8)
+            .padding(.bottom, 10)
+            .background(AppTheme.pageBackground)
+        }
+        .background(AppTheme.pageBackground)
+    }
+
+    private func tabItem(index: Int, title: String, systemImage: String) -> some View {
+        let selected = tabState.selectedTab == index
+        return Button {
+            tabState.selectedTab = index
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 22, weight: selected ? .semibold : .regular))
+                Text(title)
+                    .font(.caption2.weight(selected ? .semibold : .regular))
+            }
+            .frame(maxWidth: .infinity)
+            .foregroundStyle(selected ? AppTheme.accent : Color.primary.opacity(0.45))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }

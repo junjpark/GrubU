@@ -20,7 +20,8 @@ struct OrderReviewView: View {
 
     @StateObject private var paymentController = PaymentController()
     @EnvironmentObject var tabState: TabState
-    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var activityController: ActivityController
+    @EnvironmentObject var requestNavigation: RequestNavigationCoordinator
 
     var grubuFee: Double {
         (bounty * 0.05 * 100).rounded() / 100
@@ -49,7 +50,7 @@ struct OrderReviewView: View {
             VStack(alignment: .leading, spacing: 24) {
                 HStack {
                     Image(systemName: "building.2.fill")
-                        .foregroundColor(.orange)
+                        .foregroundStyle(AppTheme.accent)
                     Text(restaurantName)
                         .font(.title2.bold())
                 }
@@ -67,8 +68,7 @@ struct OrderReviewView: View {
                     }
                 }
                 .padding()
-                .background(AppTheme.surfaceBackground)
-                .cornerRadius(12)
+                .profileModalCardStyle()
 
                 VStack(spacing: 12) {
                     HStack {
@@ -117,6 +117,7 @@ struct OrderReviewView: View {
                     .padding(.leading, 16)
 
                     Divider()
+                        .background(Color(.separator).opacity(0.55))
 
                     HStack {
                         Text("Total").bold()
@@ -125,8 +126,7 @@ struct OrderReviewView: View {
                     }
                 }
                 .padding()
-                .background(AppTheme.surfaceBackground)
-                .cornerRadius(12)
+                .profileModalCardStyle()
 
                 if let error = paymentController.errorMessage {
                     Text(error)
@@ -136,6 +136,8 @@ struct OrderReviewView: View {
             }
             .padding()
         }
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.pageBackground)
         .navigationTitle("Review Order")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
@@ -150,8 +152,8 @@ struct OrderReviewView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.orange)
-                            .cornerRadius(14)
+                            .background(AppTheme.accent)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                 } else if paymentController.isLoading {
                     ProgressView("Loading payment...")
@@ -168,12 +170,13 @@ struct OrderReviewView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.orange)
-                            .cornerRadius(14)
+                            .background(AppTheme.accent)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                 }
             }
             .padding()
+            .padding(.bottom, AppTheme.tabBarBottomClearance)
             .background(AppTheme.pageBackground)
         }
         .onAppear {
@@ -215,19 +218,29 @@ struct OrderReviewView: View {
         )
 
         let db = Firestore.firestore()
+        let docRef = db.collection("orders").document()
         do {
-            try db.collection("orders").addDocument(from: newOrder) { error in
-                if let error = error {
-                    print("Error saving order: \(error.localizedDescription)")
-                } else {
-                    print("Order successfully posted!")
+            try docRef.setData(from: newOrder) { error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        print("Error saving order: \(error.localizedDescription)")
+                        paymentController.errorMessage = "Couldn’t post your order. Please try again."
+                        return
+                    }
                     menuManager.bag.removeAll()
                     menuManager.currentRestaurantID = nil
+                    if let uid = Auth.auth().currentUser?.uid {
+                        activityController.fetchActivity(for: uid)
+                    }
+                    var posted = newOrder
+                    posted.id = docRef.documentID
+                    requestNavigation.completeCheckoutNavigateToTracking(posted)
                     tabState.selectedTab = 1
                 }
             }
         } catch {
             print("Error encoding order: \(error.localizedDescription)")
+            paymentController.errorMessage = error.localizedDescription
         }
     }
 }

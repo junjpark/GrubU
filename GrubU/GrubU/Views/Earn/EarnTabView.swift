@@ -17,18 +17,27 @@ struct EarnTabView: View {
     @EnvironmentObject var authController: AuthController
 
     @StateObject private var marketController = MarketController()
+    @StateObject private var earnPostClaimNavigation = EarnNavigationCoordinator()
 
     private var activeJobs: [Order] {
         activityController.fulfillingTasks.filter { OrderStatusGroups.isActiveFulfiller($0.status) }
     }
 
     private var previewJobs: [Order] {
-        Array(activeJobs.prefix(2))
+        Array(activeJobs.prefix(1))
+    }
+
+    private var postClaimOrderBinding: Binding<Order?> {
+        Binding(
+            get: { earnPostClaimNavigation.postClaimOrder },
+            set: { earnPostClaimNavigation.postClaimOrder = $0 }
+        )
     }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            VStack(spacing: 0) {
+                // Pinned like Request tab: blurb + active jobs strip stay put; only the feed scrolls.
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Turn extra meal points into real cash.")
                         .font(.subheadline.weight(.medium))
@@ -41,37 +50,51 @@ struct EarnTabView: View {
                     if !activeJobs.isEmpty {
                         activeJobsSection
                     }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppTheme.pageBackground)
 
+                VStack(alignment: .leading, spacing: 0) {
                     earnSectionTitle("Available Requests")
                         .padding(.horizontal, earnHorizontalPadding)
                         .padding(.top, activeJobs.isEmpty ? 0 : 10)
 
-                    if marketController.openOrders.isEmpty {
-                        earnEmptyState
-                            .padding(.horizontal, earnHorizontalPadding)
-                            .padding(.top, 8)
-                    } else {
-                        VStack(spacing: 0) {
-                            let orders = marketController.openOrders
-                            ForEach(Array(orders.enumerated()), id: \.element.id) { index, order in
-                                NavigationLink(destination: OrderPreviewView(order: order)) {
-                                    EarnAvailableRequestCard(order: order)
-                                }
-                                .buttonStyle(.plain)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            if marketController.openOrders.isEmpty {
+                                earnEmptyState
+                                    .padding(.horizontal, earnHorizontalPadding)
+                                    .padding(.top, 8)
+                            } else {
+                                VStack(spacing: 0) {
+                                    let orders = marketController.openOrders
+                                    ForEach(Array(orders.enumerated()), id: \.element.id) { index, order in
+                                        NavigationLink(destination: OrderPreviewView(order: order)) {
+                                            EarnAvailableRequestCard(order: order)
+                                        }
+                                        .buttonStyle(.plain)
 
-                                if index < orders.count - 1 {
-                                    Divider()
-                                        .background(Color(.separator).opacity(0.55))
-                                        .padding(.vertical, 12)
+                                        if index < orders.count - 1 {
+                                            Divider()
+                                                .background(Color(.separator).opacity(0.55))
+                                                .padding(.vertical, 12)
+                                        }
+                                    }
                                 }
+                                .padding(.horizontal, earnHorizontalPadding)
+                                .padding(.top, 8)
+                                .padding(.bottom, 28)
                             }
                         }
-                        .padding(.horizontal, earnHorizontalPadding)
-                        .padding(.bottom, 28)
+                        .padding(.bottom, AppTheme.tabBarBottomClearance)
                     }
+                    .scrollContentBackground(.hidden)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(AppTheme.pageBackground)
             }
-            .scrollContentBackground(.hidden)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(AppTheme.pageBackground)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
@@ -85,6 +108,10 @@ struct EarnTabView: View {
                 marketController.stopListening()
             }
         }
+        .navigationDestination(item: postClaimOrderBinding) { order in
+            TaskTrackingView(order: order)
+        }
+        .environment(\.earnPostClaimNavigation, earnPostClaimNavigation)
     }
 
     // MARK: - Active jobs (compact)
@@ -113,7 +140,10 @@ struct EarnTabView: View {
 
             VStack(spacing: 8) {
                 ForEach(previewJobs) { order in
-                    compactActiveJobRow(order)
+                    CompactFulfillerActiveOrderRow(
+                        order: order,
+                        showsUnreadDot: activityController.unreadTaskOrderIds.contains(order.id ?? "")
+                    )
                 }
             }
             .padding(.horizontal, earnHorizontalPadding)
@@ -121,74 +151,6 @@ struct EarnTabView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppTheme.accent)
-    }
-
-    @ViewBuilder
-    private func compactActiveJobRow(_ order: Order) -> some View {
-        let oid = order.id ?? ""
-        let status = activeJobStatusPresentation(for: order.status)
-        NavigationLink(destination: TaskTrackingView(order: order)) {
-            HStack(alignment: .top, spacing: 10) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(activeJobOrderSummary(order))
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .lineLimit(4)
-
-                    Text(activeJobPickupLine(order))
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(3)
-                }
-
-                Spacer(minLength: 8)
-
-                VStack(alignment: .trailing, spacing: 6) {
-                    Text(status.label)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(status.color)
-                        .multilineTextAlignment(.trailing)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    HStack(spacing: 6) {
-                        if activityController.unreadTaskOrderIds.contains(oid) {
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 6, height: 6)
-                        }
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(AppTheme.surfaceBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func activeJobOrderSummary(_ order: Order) -> String {
-        let lines = order.orderDetails
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        if lines.isEmpty {
-            return "—"
-        }
-        return lines.joined(separator: " + ")
-    }
-
-    /// Pickup / venue context (e.g. `Subway @ DUC` when a task location exists).
-    private func activeJobPickupLine(_ order: Order) -> String {
-        let name = order.restaurantName
-        if let loc = order.taskLocation?.trimmingCharacters(in: .whitespacesAndNewlines), !loc.isEmpty {
-            return "\(name) @ \(loc)"
-        }
-        return name
     }
 
     // MARK: - Empty available requests
@@ -226,20 +188,5 @@ struct EarnTabView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 4)
             .padding(.bottom, 10)
-    }
-
-    private func activeJobStatusPresentation(for status: String) -> (label: String, color: Color) {
-        switch status {
-        case "claimed":
-            return ("Need to Order", .red)
-        case "ordered":
-            return ("Order in Progress", Color(red: 0.78, green: 0.58, blue: 0.04))
-        case "delivered":
-            return ("Delivered", .green)
-        case "completed":
-            return ("Completed", .purple)
-        default:
-            return (status.replacingOccurrences(of: "_", with: " ").capitalized, .orange)
-        }
     }
 }

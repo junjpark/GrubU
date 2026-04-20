@@ -36,7 +36,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNot
         // Keep list/collection screens aligned with the app's white + warm surface palette.
         UITableView.appearance().backgroundColor = UIColor(AppTheme.pageBackground)
         UICollectionView.appearance().backgroundColor = UIColor(AppTheme.pageBackground)
-        
+
+        RestaurantImageCache.warmConfigureURLSessionDefaults()
+
         return true
     }
     

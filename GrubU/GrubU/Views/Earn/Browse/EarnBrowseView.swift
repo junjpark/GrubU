@@ -24,7 +24,7 @@ enum EarnAmountFormatting {
     }
 }
 
-/// PAYOUT / MEAL POINTS row for available-request cards.
+/// MEAL POINTS (leading, black) + PAYOUT (trailing, accent) for available-request cards.
 struct EarnPayoutMealPointsHeader: View {
     let bountyAmount: Double
     let foodCost: Double
@@ -32,21 +32,21 @@ struct EarnPayoutMealPointsHeader: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("PAYOUT")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .tracking(0.5)
-                Text(EarnAmountFormatting.payoutHeadline(bounty: bountyAmount))
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(AppTheme.accent)
-            }
-            Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 4) {
                 Text("MEAL POINTS")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .tracking(0.5)
                 Text(EarnAmountFormatting.mealPointsDisplay(foodCost))
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(.primary)
+            }
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("PAYOUT")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .tracking(0.5)
+                Text(EarnAmountFormatting.payoutHeadline(bounty: bountyAmount))
                     .font(.title2.weight(.bold))
                     .foregroundStyle(AppTheme.accent)
             }
@@ -81,6 +81,20 @@ struct EarnAvailableRequestCard: View {
             }
             .font(.caption2)
             .lineLimit(2)
+
+            HStack {
+                Spacer(minLength: 0)
+                HStack(spacing: 5) {
+                    Text("Accept Job")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.accent)
+                    Image(systemName: "arrow.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.accent)
+                }
+                .accessibilityLabel("Accept job, view details")
+            }
+            .padding(.top, 4)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)

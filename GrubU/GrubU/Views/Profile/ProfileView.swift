@@ -122,6 +122,7 @@ struct ProfileView: View {
 
                     Spacer(minLength: 24)
                 }
+                .padding(.bottom, AppTheme.tabBarBottomClearance)
             }
             .background(pageBackground)
             .scrollContentBackground(.hidden)

@@ -11,6 +11,7 @@ import SwiftUI
 struct OrderListRow: View {
     let order: Order
     var showsUnreadDot: Bool = false
+    var role: OrderStatusRole
 
     var body: some View {
         HStack(spacing: 10) {
@@ -23,7 +24,7 @@ struct OrderListRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(order.restaurantName)
                     .font(.headline)
-                Text(order.status.capitalized)
+                Text(OrderStatusPresentation.shortLabel(status: order.status, role: role))
                     .font(.subheadline)
                     .foregroundColor(statusColor)
                 if let timestampText = timestampText {
@@ -41,12 +42,7 @@ struct OrderListRow: View {
     }
 
     private var statusColor: Color {
-        switch order.status {
-        case "delivered": return .green
-        case "ordered": return .blue
-        case "completed": return .purple
-        default: return .orange
-        }
+        OrderStatusPresentation.accentColor(status: order.status, role: role)
     }
 
     private var timestampText: String? {

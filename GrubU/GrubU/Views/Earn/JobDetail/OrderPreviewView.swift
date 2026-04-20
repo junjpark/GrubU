@@ -13,6 +13,8 @@ struct OrderPreviewView: View {
     let order: Order
     @EnvironmentObject var authController: AuthController
     @EnvironmentObject var tabState: TabState
+    @EnvironmentObject var activityController: ActivityController
+    @Environment(\.earnPostClaimNavigation) private var earnPostClaimNavigation
     @StateObject private var marketController = MarketController()
     @Environment(\.dismiss) var dismiss
 
@@ -23,42 +25,57 @@ struct OrderPreviewView: View {
 
     var body: some View {
         ZStack {
+            AppTheme.pageBackground.ignoresSafeArea()
+
             VStack(spacing: 0) {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 28) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(OrderStatusPresentation.earnerAvailableJobTitle)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppTheme.accent)
+                            Text(OrderStatusPresentation.earnerAvailableJobDetail)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineSpacing(4)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(16)
+                        .profileModalCardStyle()
 
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Payout")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-                                    .bold()
-                                Text("+$\(order.bountyAmount, specifier: "%.2f")")
-                                    .font(.largeTitle)
-                                    .fontWeight(.heavy)
-                                    .foregroundColor(.green)
-                            }
-                            Spacer()
-                            VStack(alignment: .trailing, spacing: 4) {
                                 Text("Meal Points")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
                                     .bold()
-                                Text("-$\(order.foodCost, specifier: "%.2f")")
+                                Text("$\(order.foodCost, specifier: "%.2f")")
                                     .font(.largeTitle)
                                     .fontWeight(.heavy)
-                                    .foregroundColor(.red)
+                                    .foregroundColor(.primary)
+                            }
+                            Spacer()
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text("Payout")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                    .bold()
+                                Text(String(format: "+$%.2f", order.bountyAmount))
+                                    .font(.largeTitle)
+                                    .fontWeight(.heavy)
+                                    .foregroundStyle(AppTheme.accent)
                             }
                         }
-                        .padding(.top, 10)
+                        .padding(20)
+                        .profileModalCardStyle()
 
                         VStack(alignment: .leading, spacing: 16) {
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
                                     Image(systemName: "checklist")
-                                        .foregroundColor(.gray)
+                                        .foregroundStyle(.secondary)
                                     Text(order.restaurantName)
                                         .font(.headline)
                                 }
@@ -69,6 +86,7 @@ struct OrderPreviewView: View {
                                 }
                             }
                             Divider()
+                                .background(Color(.separator).opacity(0.55))
                             VStack(alignment: .leading, spacing: 12) {
                                 ForEach(order.orderDetails, id: \.self) { item in
                                     HStack(alignment: .top) {
@@ -81,26 +99,30 @@ struct OrderPreviewView: View {
                             }
                         }
                         .padding()
-                        .background(AppTheme.surfaceBackground)
-                        .cornerRadius(12)
+                        .profileModalCardStyle()
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Terms & Conditions:")
                                 .font(.caption)
                                 .bold()
                                 .foregroundColor(.secondary)
-                            Text("By accepting this request, you commit to placing this order using your funds and uploading proof of delivery. Unfulfilled accepted requests negatively impact your rating and may result in account suspension.")
+                            Text("By accepting this request, you commit to placing it in Grubhub with your meal points and uploading proof from Grubhub when the order is placed or complete. The requester picks up their own food. Unfulfilled jobs may affect your rating and account.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .lineSpacing(4)
                         }
+                        .padding()
+                        .profileModalCardStyle()
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                 }
+                .scrollContentBackground(.hidden)
+                .background(AppTheme.pageBackground)
 
                 VStack {
                     Divider()
+                        .background(Color(.separator).opacity(0.55))
                     HStack(spacing: 16) {
                         Button(action: { dismiss() }) {
                             Text("Cancel")
@@ -108,8 +130,7 @@ struct OrderPreviewView: View {
                                 .foregroundColor(.primary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
-                                .background(Color(UIColor.systemGray5))
-                                .cornerRadius(14)
+                                .profileModalCardStyle()
                         }
                         .disabled(isClaiming)
 
@@ -123,14 +144,15 @@ struct OrderPreviewView: View {
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 16)
-                                    .background(Color.orange)
-                                    .cornerRadius(14)
+                                    .background(AppTheme.accent)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             }
                         }
                         .disabled(isClaiming)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
+                    .padding(.top, 16)
+                    .padding(.bottom, 16 + AppTheme.tabBarBottomClearance)
                 }
                 .background(AppTheme.pageBackground)
             }
@@ -201,7 +223,17 @@ struct OrderPreviewView: View {
         marketController.claimOrder(orderId: orderId, fulfillerId: currentUserId) { success in
             isClaiming = false
             if success {
+                var claimed = order
+                claimed.status = "claimed"
+                claimed.fulfillerId = currentUserId
+                if let uid = authController.userSession?.uid {
+                    activityController.fetchActivity(for: uid)
+                }
                 tabState.selectedTab = 0
+                dismiss()
+                DispatchQueue.main.async {
+                    earnPostClaimNavigation?.postClaimOrder = claimed
+                }
             } else {
                 print("Failed to claim order in UI")
             }

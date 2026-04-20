@@ -13,6 +13,7 @@ import FirebaseStorage
 struct TaskTrackingView: View {
     let initialOrder: Order
     @EnvironmentObject var activityController: ActivityController
+    @Environment(\.earnPostClaimNavigation) private var earnPostClaimNavigation
     @Environment(\.dismiss) var dismiss
     private var db = Firestore.firestore()
 
@@ -37,116 +38,152 @@ struct TaskTrackingView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 30) {
-                
+            VStack(spacing: 16) {
                 HStack(spacing: 10) {
-                    let statuses = ["claimed", "ordered", "delivered", "completed"]
-                    let currentIndex = statuses.firstIndex(of: order.status) ?? 0
-                    
-                    ForEach(Array(statuses.enumerated()), id: \.element) { index, step in
+                    let pipeline = OrderStatusPresentation.fulfillerProgressPipeline
+                    let currentIndex = OrderStatusPresentation.progressIndex(pipeline: pipeline, status: order.status)
+
+                    ForEach(0..<pipeline.count, id: \.self) { index in
                         Rectangle()
                             .frame(height: 8)
-                            .foregroundColor(index <= currentIndex ? .orange : .gray.opacity(0.3))
+                            .foregroundStyle(index <= currentIndex ? AppTheme.accent : Color(.separator).opacity(0.45))
                             .cornerRadius(4)
                     }
                 }
-                .padding(.top)
+                .padding(14)
+                .profileModalCardStyle()
 
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Current Status: \(order.status.uppercased())")
-                        .font(.caption).bold().foregroundColor(.secondary)
-                    Text(statusMessage)
-                        .font(.title2).bold()
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                OrderLineItemsSummaryCard(order: order)
 
-                Divider()
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(OrderStatusPresentation.shortLabel(status: order.status, role: .fulfiller))
+                            .font(.title2).bold()
+                            .foregroundStyle(.primary)
+                        Text(OrderStatusPresentation.detailMessage(status: order.status, role: .fulfiller))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                if order.status == "claimed" {
-                    VStack(alignment: .leading, spacing: 20) {
-                        CustomTextField(label: "Pickup Name", placeholder: "Enter name used for pickup", text: $pickupName)
-                        CustomTextField(label: "Estimated Ready Time", placeholder: "Enter estimated ready time", text: $estimatedTime)
-                        CustomTextField(label: "Order Number (Optional)", placeholder: "Enter order number", text: $grubhubOrderId)
-                        
-                        Toggle(isOn: $hasConfirmedItems) {
-                            Text("I confirm that I placed the order exactly as requested.")
-                                .font(.subheadline)
+                    if order.status == "claimed" {
+                        Divider()
+                            .background(Color(.separator).opacity(0.55))
+
+                        VStack(alignment: .leading, spacing: 20) {
+                            CustomTextField(
+                                label: "Pickup name",
+                                placeholder: "Name you used to order",
+                                text: $pickupName
+                            )
+                            CustomTextField(
+                                label: "Estimated ready time",
+                                placeholder: "e.g. 12:20 PM",
+                                text: $estimatedTime
+                            )
+                            CustomTextField(
+                                label: "Grubhub order #",
+                                placeholder: "From your Grubhub receipt",
+                                text: $grubhubOrderId
+                            )
+
+                            Toggle(isOn: $hasConfirmedItems) {
+                                Text("I confirm that I placed the order exactly as requested.")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .toggleStyle(CheckboxToggleStyle())
+                        }
+
+                    } else if order.status == "ordered" {
+                        Divider()
+                            .background(Color(.separator).opacity(0.55))
+
+                        VStack(alignment: .leading, spacing: 15) {
+                            Text("Grubhub screenshot")
+                                .font(.headline)
+
+                            Button(action: { showImagePicker = true }) {
+                                VStack {
+                                    if let selectedImage = selectedImage {
+                                        Image(uiImage: selectedImage)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(height: 150)
+                                            .clipped()
+                                    } else {
+                                        Image(systemName: "plus")
+                                            .font(.title)
+                                        Text("UPLOAD")
+                                            .fontWeight(.bold)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 150)
+                                .background(AppTheme.pageBackground)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(
+                                            Color(.separator).opacity(0.6),
+                                            style: StrokeStyle(lineWidth: 2, dash: selectedImage == nil ? [5] : [])
+                                        )
+                                )
+                            }
+                            .foregroundColor(selectedImage == nil ? .primary : .clear)
+
+                            Text("Tap above to attach a screenshot from the Grubhub app.")
+                                .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                        .toggleStyle(CheckboxToggleStyle())
                     }
-                    
-                } else if order.status == "ordered" {
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text("Upload Photo Evidence")
-                            .font(.headline)
-                        
-                        Button(action: { showImagePicker = true }) {
-                            VStack {
-                                if let selectedImage = selectedImage {
-                                    Image(uiImage: selectedImage)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(height: 150)
-                                        .clipped()
-                                } else {
-                                    Image(systemName: "plus")
-                                        .font(.title)
-                                    Text("UPLOAD")
-                                        .fontWeight(.bold)
+
+                    Spacer(minLength: 8)
+
+                    if order.status != "delivered" && order.status != "completed" {
+                        Button(action: submitOrderUpdate) {
+                            HStack {
+                                if isUploading {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .padding(.trailing, 5)
                                 }
+                                Text(isUploading ? "Uploading..." : buttonLabel)
+                                    .font(.headline)
                             }
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 150)
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.gray, style: StrokeStyle(lineWidth: 2, dash: selectedImage == nil ? [5] : []))
-                            )
+                            .padding()
+                            .background(isFormValid && !isUploading ? AppTheme.accent : Color(.separator).opacity(0.55))
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
-                        .foregroundColor(selectedImage == nil ? .primary : .clear)
-                        
-                        Text("Please provide a screenshot of the ready-to-pickup GrubHub order.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Spacer(minLength: 20)
-                
-                if order.status != "delivered" && order.status != "completed" {
-                    Button(action: submitOrderUpdate) {
-                        HStack {
-                            if isUploading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .padding(.trailing, 5)
-                            }
-                            Text(isUploading ? "Uploading..." : buttonLabel)
-                                .font(.headline)
+                        .disabled(!isFormValid || isUploading)
+                    } else if order.status == "completed" {
+                        Divider()
+                            .background(Color(.separator).opacity(0.55))
+
+                        VStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 50))
+                                .foregroundStyle(AppTheme.accent)
+                                .padding(.bottom, 5)
+                            Text(OrderStatusPresentation.shortLabel(status: "completed", role: .fulfiller))
+                                .font(.title3).bold()
+                                .foregroundStyle(AppTheme.accent)
                         }
-                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(isFormValid && !isUploading ? Color.orange : Color.gray.opacity(0.5))
-                        .cornerRadius(12)
+                        .padding(.vertical, 8)
                     }
-                    .disabled(!isFormValid || isUploading)
-                } else {
-                    VStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(.orange)
-                            .padding(.bottom, 5)
-                        Text("Order Complete")
-                            .font(.title3).bold().foregroundColor(.orange)
-                    }
-                    .padding(.top, 20)
                 }
+                .padding(16)
+                .profileModalCardStyle()
             }
             .padding(.horizontal)
+            .padding(.bottom, AppTheme.tabBarBottomClearance)
         }
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.pageBackground)
         .navigationTitle("Track Task")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -159,6 +196,7 @@ struct TaskTrackingView: View {
         }
         .onDisappear {
             activityController.setActiveTaskDetailOrderId(nil)
+            earnPostClaimNavigation?.clearPostClaimIfMatches(orderId: initialOrder.id)
             orderListener?.remove()
             orderListener = nil
         }
@@ -168,18 +206,8 @@ struct TaskTrackingView: View {
     }
     
     // --- UI Helpers ---
-    var statusMessage: String {
-        switch order.status {
-        case "claimed": return "Head to Grubhub to place the order."
-        case "ordered": return "Food is being prepared. Upload a screenshot when it's ready."
-        case "delivered": return "Food is ready-for-pickup. Waiting for requester confirmation."
-        case "completed": return "Requester confirmed receipt."
-        default: return "Unknown status"
-        }
-    }
-    
     var buttonLabel: String {
-        order.status == "claimed" ? "Confirm & Mark as Ordered" : "Submit Screenshot & Mark as Completed"
+        order.status == "claimed" ? "Confirm & Mark as Ordered" : "Submit proof & notify requester"
     }
     
     var isFormValid: Bool {
@@ -266,7 +294,7 @@ struct CustomTextField: View {
     let label: String
     let placeholder: String
     @Binding var text: String
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
@@ -274,7 +302,12 @@ struct CustomTextField: View {
                 .foregroundColor(.primary)
             TextField(placeholder, text: $text)
                 .padding()
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.5), lineWidth: 1))
+                .background(AppTheme.pageBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color(.separator).opacity(0.45), lineWidth: 1)
+                )
         }
     }
 }
@@ -283,7 +316,7 @@ struct CheckboxToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack {
             Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                .foregroundColor(configuration.isOn ? .orange : .gray)
+                .foregroundStyle(configuration.isOn ? AppTheme.accent : Color.secondary)
                 .onTapGesture { configuration.isOn.toggle() }
             configuration.label
         }

@@ -61,6 +61,7 @@ struct FinalCheckoutView: View {
                 }
             }
         }
+        .padding(.bottom, AppTheme.tabBarBottomClearance)
         .navigationTitle("Checkout")
     }
 }

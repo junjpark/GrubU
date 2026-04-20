@@ -13,6 +13,9 @@ struct Restaurant: Identifiable, Codable {
     @DocumentID var id: String?
     var name: String
     var location: String
+    /// HTTPS URL (e.g. Firebase Storage). Omit or leave empty for a placeholder tile.
+    /// Any phone photo resolution works; the UI crops with `scaledToFill` inside a fixed aspect frame.
+    var imageUrl: String?
     var items: [MenuItem]
 }
 

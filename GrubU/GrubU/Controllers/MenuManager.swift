@@ -100,6 +100,16 @@ class MenuManager: ObservableObject {
         BagDisplayLine.lines(from: bag)
     }
 
+    /// Restaurant for the current bag (single-restaurant rule).
+    var bagRestaurant: Restaurant? {
+        guard let id = currentRestaurantID else { return nil }
+        return restaurants.first { $0.id == id }
+    }
+
+    var bagRestaurantDisplayName: String {
+        bagRestaurant?.name ?? "Restaurant"
+    }
+
     func removeBagDisplayLine(id: String) {
         bag.removeAll { "\($0.name)#\($0.price)" == id }
         if bag.isEmpty {
