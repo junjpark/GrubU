@@ -9,7 +9,7 @@
 import SwiftUI
 
 enum AppTheme {
-    static let accent = Color(red: 1.0, green: 0.36, blue: 0.22)
+    static let accent = Color.orange
     static let pageBackground = Color.white
     static let surfaceBackground = Color(red: 0.972, green: 0.965, blue: 0.952)
 
