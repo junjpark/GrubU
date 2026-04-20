@@ -25,13 +25,11 @@ struct LoginView: View {
                 VStack(spacing: 20) {
                     Image("GrubULogo")
                         .resizable()
-                        .renderingMode(.template)
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 140, height: 140)
-                        .foregroundColor(.white)
 
                     Text("GrubU")
-                        .font(.system(size: 55, weight: .bold))
+                        .font(.system(size: 55, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .padding(.bottom, 40)
 
@@ -84,7 +82,21 @@ struct LoginView: View {
                     }
                     .padding(.horizontal, 30)
                     .padding(.top, 10)
+
+                    NavigationLink(destination: SignupView()) {
+                        HStack(spacing: 4) {
+                            Text("New here?")
+                                .foregroundColor(.white.opacity(0.85))
+                            Text("Sign up")
+                                .foregroundColor(.white)
+                                .bold()
+                                .underline()
+                        }
+                        .font(.subheadline)
+                    }
+                    .padding(.top, 8)
                 }
+                .fontDesign(.rounded)
             }
         }
     }
