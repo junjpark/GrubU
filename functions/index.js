@@ -3,7 +3,7 @@ admin.initializeApp();
 
 const { beforeUserCreated } = require("firebase-functions/v2/identity");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
@@ -186,6 +186,64 @@ exports.syncFulfillerRatingFromOrder = onDocumentUpdated("orders/{orderId}", asy
     } catch (e) {
         console.error("syncFulfillerRatingFromOrder:", e);
     }
+
+    return null;
+});
+
+/**
+ * Fires every time the app writes a new support ticket to `issueReports`.
+ * Today it just logs a structured summary (visible in Firebase Functions
+ * logs) so the team has an easy feed to monitor; extend this to push to
+ * Slack, email via SendGrid, or the Firebase "Trigger Email" extension.
+ */
+exports.onIssueReportCreated = onDocumentCreated("issueReports/{reportId}", async (event) => {
+    const snap = event.data;
+    if (!snap) return null;
+
+    const report = snap.data() || {};
+    const reportId = event.params.reportId;
+
+    console.log("New GrubU issue report:", {
+        reportId,
+        orderId: report.orderId,
+        reporterUid: report.reporterUid,
+        reporterRole: report.reporterRole,
+        reporterEmail: report.reporterEmail,
+        orderStatusAtReport: report.orderStatusAtReport,
+        description: report.description,
+    });
+
+    // Freeze the underlying order so it can't advance or pay out while
+    // support investigates. Completed orders stay completed because payout
+    // already went through.
+    const orderId = report.orderId;
+    if (orderId && typeof orderId === "string") {
+        try {
+            const db = admin.firestore();
+            const orderRef = db.collection("orders").doc(orderId);
+            const orderSnap = await orderRef.get();
+
+            if (orderSnap.exists) {
+                const currentStatus = orderSnap.data().status;
+                const update = {
+                    issueReportId: reportId,
+                    lastIssueReportedAt: admin.firestore.FieldValue.serverTimestamp(),
+                };
+                if (currentStatus !== "completed") {
+                    update.status = "issue_reported";
+                }
+                await orderRef.update(update);
+                console.log(`onIssueReportCreated: order ${orderId} frozen (was "${currentStatus}")`);
+            } else {
+                console.warn(`onIssueReportCreated: order ${orderId} not found, cannot freeze.`);
+            }
+        } catch (err) {
+            console.error("onIssueReportCreated: failed to update order", orderId, err);
+        }
+    }
+
+    // TODO: wire outbound notification of your choice, e.g. a Slack webhook
+    // or the Firebase "Trigger Email" extension's `mail` collection.
 
     return null;
 });

@@ -10,7 +10,7 @@ import Foundation
 
 enum OrderStatusGroups {
     static func isActiveFulfiller(_ status: String) -> Bool {
-        ["claimed", "ordered", "delivered"].contains(status)
+        ["claimed", "ordered", "delivered", IssueReportController.issueStatus].contains(status)
     }
 
     static func isActiveRequester(_ status: String) -> Bool {
